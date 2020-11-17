@@ -1,3 +1,4 @@
 #Ignored Files
 venv/
 /.idea
+.DS_Store
