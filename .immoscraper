@@ -1,0 +1,125 @@
+from bs4 import BeautifulSoup
+import requests
+from urllib.parse import urljoin
+import pandas as pd
+
+class ScrapedRealEstate():
+    def __init__(self, city, district, housetype, livingspace, roomnumber, sitespace, endowment, price):
+        self.city = city
+        self.district = district 
+        self.housetype = housetype
+        self.livingspace = livingspace
+        self.roomnumber = roomnumber
+        self.sitespace = sitespace
+        self.endowment = endowment
+        self.price = price
+
+class ImmoFetcher():
+    def fetch(self):
+        url ='https://www.immonet.de/immobiliensuche/sel.do?parentcat=2&objecttype=1&pageoffset=27&listsize=27&suchart=1&sortby=0&city=153145&marketingtype=1&page=1'
+        inventory = []
+        
+        while url != "":
+            
+            r = requests.get(url)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            containers = soup.find_all('div', class_= 'flex-grow-1 display-flex flex-direction-column overflow-hidden')
+
+            for container in containers:
+                
+                city = container.find('span', class_= 'text-100')
+                if city != None:
+                    city = container.find('span', class_= 'text-100').text.strip().split()[-2]
+                    
+                    if city !='Würzburg':
+                        url=''
+                        break
+               
+                else:
+                    continue
+
+
+                district = container.find('span', class_='text-100')
+                if district != None:
+                    district = container.find('span', class_= 'text-100').text.strip().split()[-1]
+                else:
+                    continue
+
+
+                housetype = container.find('span', class_= 'text-100')
+                if housetype != None:
+                    housetype = container.find('span', class_= 'text-100').text.strip().split()[0]
+                else:
+                    continue
+
+                
+                spaces = container.find_all('p', class_='text-250 text-strong text-nowrap')
+                
+
+                livingspace = spaces[0].text.strip().split()[0]+' m²'
+
+                roomnumber = spaces[-1].text.strip().split()
+                if len(spaces) == 3:
+                    roomnumber = spaces[-1].text.strip().split()[0]
+                elif float(roomnumber[0]) > 100.0:
+                    roomnumber = '-'
+                elif len(spaces) == 2:   
+                    roomnumber = spaces[-1].text.strip().split()[0]
+                elif len(spaces) == 1:
+                    roomnumber = '-'
+
+
+                if len(spaces) == 3:
+                    sitespace = spaces[1].text.strip().split()[0]+' m²'
+                else:
+                    sitespace = '-'
+
+                endowment = container.find_all('div', class_='box-25')[1].text.split()
+                if endowment[0] != 'Kaufpreis' and endowment[0] != 'Preis':
+                    try:
+                        endowment = endowment[0]+ ', '+endowment[1]+', '+endowment[3]
+                    except IndexError:
+                        try:
+                            endowment = endowment[0]+ ', '+endowment[1]
+                        except IndexError:
+                            try:
+                                endowment = endowment[0]
+                            except IndexError:
+                                endowment = ''
+                                continue
+                else:
+                    endowment = '-'
+
+                
+                price = container.find('span', class_:='text-250 text-strong text-nowrap')
+                if price != None:
+                    price = container.find('span', class_='text-250 text-strong text-nowrap').text.strip('€')+'€'
+                else:
+                    price = "auf Anfrage"
+
+                
+                scraped = ScrapedRealEstate(city, district, housetype, livingspace, roomnumber, sitespace, endowment, price)
+                inventory.append(scraped)
+            
+                
+                next_button = soup.find('a', class_= 'col-sm-3 col-xs-1 pull-right text-right')
+                if next_button:
+                    next_href = next_button.attrs["href"]
+                    next_href = urljoin(url, next_href)            
+                    url = next_href
+                else:
+                    url = ""
+        
+        return inventory
+
+
+
+import csv
+fetcher = ImmoFetcher()
+
+with open('immoscraper.csv', 'w', newline='', encoding='utf-8') as csvfile:
+    realestatewriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    realestatewriter.writerow(['CITY', 'DISTRICT', 'HOUSETYPE', 'LIVING_SPACE', 'NUMBER_ROOMS', 'SITE_SPACE', 'ENDOWMENT', 'PRICE'])
+    
+    for realestate in fetcher.fetch():
+        realestatewriter.writerow([realestate.city, realestate.district, realestate.housetype, realestate.livingspace, realestate.roomnumber, realestate.sitespace, realestate.endowment, realestate.price]) 
