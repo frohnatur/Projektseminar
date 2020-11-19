@@ -1,0 +1,47 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+Immobilien = pd.read_excel(r"/content/sample_data/Immobilien.xlsx")
+Immobilien_drop = Immobilien.drop(columns=["anzahl_schlafzimmer", "anzahl_badezimmer", "baujahr", "ort", "strasse", "auftragsart", "Ursprünglicher Angebotspreis", "auftragvon", "auftragbis", "Unnamed: 0"], index=13)
+Immobilien_drop["verkauft_am"] = pd.to_datetime(Immobilien_drop["verkauft_am"], errors="coerce")
+
+Immobilien_drop["energieausweisbaujahr"] = Immobilien_drop["energieausweisbaujahr"].fillna(1980)
+Immobilien_drop["zustand"] = Immobilien_drop["zustand"].fillna("gepflegt")
+Immobilien_drop["unterkellert"] = Immobilien_drop["unterkellert"].fillna("JA")
+
+Immobilien_drop["Verkaufsjahr"] = Immobilien_drop["verkauft_am"].apply(lambda row: row.year)
+Immobilien_drop["Verkaufsmonat"] = Immobilien_drop["verkauft_am"].apply(lambda row: row.month)
+Immobilien_drop = Immobilien_drop.drop("verkauft_am", axis=1)
+
+categorical_mask = (Immobilien_drop.dtypes == object)
+categorical_columns = Immobilien_drop.columns[categorical_mask].tolist()
+
+category_enc = pd.get_dummies(Immobilien_drop[categorical_columns])
+
+Immobilien_drop = pd.concat([Immobilien_drop, category_enc], axis=1)
+Immobilien_drop = Immobilien_drop.drop(columns=categorical_columns)
+
+Immobilien_encoded = Immobilien_drop[Immobilien_drop["Realer Kaufpreis"] != 0]
+X = Immobilien_encoded.drop(columns=["Realer Kaufpreis"]).values
+y = Immobilien_encoded["Realer Kaufpreis"].values
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+xg_reg = xgb.XGBRegressor(objective="reg:linear", n_estimators=20, seed=123)
+xg_reg.fit(X_train, y_train)
+preds = xg_reg.predict(X_test)
+rmse = np.sqrt(mean_squared_error(y_test, preds))
+print("RMSE: %f" % (rmse))
+
+DM_train = xgb.DMatrix(data=X_train, label=y_train)
+DM_test =  xgb.DMatrix(data=X_test, label=y_test)
+params = {"booster":"gblinear", "objective":"reg:linear"}
+xg_reg = xgb.train(dtrain = DM_train, params=params, num_boost_round=15)
+preds = xg_reg.predict(DM_test)
+rmse = np.sqrt(mean_squared_error(y_test,preds))
+print("RMSE: %f" % (rmse))
