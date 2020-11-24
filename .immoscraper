@@ -126,6 +126,7 @@ class ImmoFetcher():
                     grundstuecksflaeche = '0'
                 print('grundstücksfläche in m²: ' + grundstuecksflaeche)
 
+                
                 zustand = soup2.find('div', id = 'objectstatecategoryValue')
                 if zustand != None:
                     zustand = soup2.find('div', id = 'objectstatecategoryValue').text.strip()
@@ -215,6 +216,7 @@ class ImmoFetcher():
                 url = next_href
             else:
                 url = ''
+        
         return inventory
 
 
@@ -223,13 +225,12 @@ class ImmoFetcher():
 import csv
 fetcher = ImmoFetcher()
 
-with open('immoscraper.csv', 'w', newline='', encoding='utf-8') as csvfile:
+with open('immonet_kauf.csv', 'w', newline='', encoding='utf-8') as csvfile:
     realestatewriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    realestatewriter.writerow(['CITY', 'DISTRICT', 'HOUSETYPE', 'LIVING_SPACE', 'NUMBER_ROOMS', 'SITE_SPACE', 'ENDOWMENT', 'PRICE'])
+    realestatewriter.writerow(['nutzungsart', 'vermarktungsart', 'objektart', 'neubau', 'plz', 'ort', 'strasse', 'wohnflaeche', 'grundstuecksflaeche', 'anzahl_zimmer', 'anzahl_schlafzimmer', 'anzahl_badezimmer', 'Ursprünglicher Angebotspreis', 'Angebotspreis', 'Realer Kaufpreis', 'baujahr', 'zustand', 'etagen_zahl', 'balkon', 'terrasse', 'unterkellert', 'energieausweisbaujahr', 'auftragvon', 'auftragbis', 'auftragsart', 'verkauft_am'])
     
-    for realestate in fetcher.fetch():
-        realestatewriter.writerow([realestate.city, realestate.district, realestate.housetype, realestate.livingspace, realestate.roomnumber, realestate.sitespace, realestate.endowment, realestate.price]) 
-
+    for x in fetcher.fetch():
+        realestatewriter.writerow([x.nutzungsart, x.vermarktungsart, x.objektart, x.neubau, x.plz, x.ort, x.strasse, x.wohnflaeche, x.grundstuecksflaeche, x.anzahl_zimmer, x.anzahl_schlafzimmer, x.anzahl_badezimmer, x.urspruenglicher_angebotspreis, x.angebotspreis, x.realer_kaufpreis, x.baujahr, x.zustand, x.etagen_zahl, x.balkon, x.terrasse, x.unterkellert, x.energieausweisbaujahr, x.auftragvon, x.auftragbis, x.auftragsart, x.verkauft_am])
 
 
 
