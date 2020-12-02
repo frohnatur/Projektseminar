@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
+if __name__ == "__main__":
+    print("Tests")
+    print("Das war hart")
 
-print("Tests")
-
-VRImmoData = pd.read_excel('/Files/VRImmo_Datensatz.xlsx')
