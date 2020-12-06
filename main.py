@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 
 if __name__ == "__main__":
 
@@ -31,18 +32,26 @@ if __name__ == "__main__":
                                 "grundstück": "grundstuecksflaeche", "stufenloser zugang": "barrierefrei",
                                 "aufzug": "fahrstuhl", "objektzustand": "immobilienzustand",
                                 "keller ja/nein": "unterkellert", "gäste-wc ja/nein": "gaeste_wc",
-                                "energie­effizienz­klasse": "energie_effizienzklasse"}, inplace=True)
+                                "energie­effizienz­klasse": "energie_effizienzklasse",
+                                "wesentliche energieträger" : "befeuerungsart", "end-energie-verbrauch" : "energie_verbrauch",
+                                "typ" : "immobilienart", "heizungsart" : "heizung", "vermietet ja/nein" : "vermietet"}, inplace=True)
     Immoscout24AllBase = Immoscout24AllBase.reindex(sorted(Immoscout24AllBase.columns), axis=1)
 
     #Spalteninhalte anpassen: Annahme NaN ist NEIN
     Immoscout24AllBase["unterkellert"] = Immoscout24AllBase["unterkellert"].apply(lambda row: "JA" if row == "keller" else "NEIN")
     Immoscout24AllBase["gaeste_wc"] = Immoscout24AllBase["gaeste_wc"].apply(lambda row: "JA" if row == "Gäste-WC" else "NEIN")
+    #Immoscout24AllBase["balkon"] = Immoscout24AllBase["balkon"].apply(lambda row: "NEIN" if row.isnull() else "JA")
+    #Immoscout24AllBase["barrierefrei"] = Immoscout24AllBase["barrierefrei"].apply(lambda row: "NEIN" if row.isnull() else "JA")
+    Immoscout24AllBase["baujahr"] = Immoscout24AllBase["baujahr"].apply(lambda row: np.NaN if row == "unbekannt" else None)
+    Immoscout24AllBase["grundstuecksflaeche"] = Immoscout24AllBase["grundstuecksflaeche"].apply(lambda row: re.sub('[.m²]', '', row))
+    Immoscout24AllBase["wohnflaeche"] = Immoscout24AllBase["wohnflaeche"].apply(lambda row: re.sub('[m²]', '', row))
 
     ImmobilienAll = pd.concat([Immoscout24AllBase, ImmonetBase], axis=0, ignore_index=True, join="inner")
 
     ImmobilienAll2 = pd.concat([Immoscout24AllBase, ImmonetBase], axis=0, ignore_index=True, join="outer")
 
-    #ImmobilienAll2.to_excel(excel_writer="Files/ImmobilienAll2.xlsx", sheet_name="ImmobilienALl")
+    #ImmobilienAll2.to_excel(excel_writer="Files/ImmobilienAll2v2.xlsx", sheet_name="ImmobilienAll")
+
 
     with pd.option_context('display.max_rows', 5, 'display.max_columns', 17):
         print(ImmobilienAll2)
