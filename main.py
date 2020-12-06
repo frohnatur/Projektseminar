@@ -55,4 +55,4 @@ if __name__ == "__main__":
 
     with pd.option_context('display.max_rows', 5, 'display.max_columns', 17):
         print(ImmobilienAll2)
-    print("test")
+    print("und zurück")
