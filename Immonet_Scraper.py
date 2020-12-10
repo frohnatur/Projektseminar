@@ -38,12 +38,12 @@ class ImmoFetcher():
     def fetch(self):
         url = 'https://www.immonet.de/immobiliensuche/sel.do?pageoffset=1&listsize=26&objecttype=1&locationname=W%C3%BCrzburg&acid=&actype=&city=153145&ajaxIsRadiusActive=true&sortby=16&suchart=2&radius=50&pcatmtypes=-1_1&pCatMTypeStoragefield=-1_1&parentcat=-1&marketingtype=1&fromprice=&toprice=&fromarea=&toarea=&fromplotarea=&toplotarea=&fromrooms=&torooms=&wbs=-1&fromyear=&toyear=&fulltext=&absenden=Ergebnisse+anzeigen'
         inventory = []
+
         while url != '':
             print(url)
             r = requests.get(url)
             soup = BeautifulSoup(r.text, 'html.parser')
-            containers = soup.find_all('div',
-                                       class_='flex-grow-1 display-flex flex-direction-column box-25 overflow-hidden cursor-hand')
+            containers = soup.find_all('div', class_='flex-grow-1 display-flex flex-direction-column box-25 overflow-hidden cursor-hand')
             for container in containers:
 
                 moredata = container.find('a', class_='block ellipsis text-225 text-default')
