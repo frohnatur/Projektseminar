@@ -56,7 +56,13 @@ class ImmoFetcher():
 
                 ort = soup2.find('p', class_='text-100 pull-left')
                 if ort != None:
-                    ort = soup2.find('p', class_='text-100 pull-left').text.strip().split()[-4]
+                    vorsilbe = soup2.find('p', class_='text-100 pull-left').text.strip().split()[-5]
+                    if vorsilbe == 'Bad':
+                        ort = 'Bad ' + soup2.find('p', class_='text-100 pull-left').text.strip().split()[-4]
+                    elif vorsilbe == 'Markt':
+                        ort = 'Markt ' + soup2.find('p', class_='text-100 pull-left').text.strip().split()[-4]
+                    else:
+                        ort = soup2.find('p', class_='text-100 pull-left').text.strip().split()[-4]
                 else:
                     ort = ''
                 print('ort: ' + ort)
@@ -64,7 +70,8 @@ class ImmoFetcher():
 
                 plz = soup2.find('p', class_='text-100 pull-left')
                 if plz != None:
-                    plz = soup2.find('p', class_='text-100 pull-left').text.strip().split()[-5]
+                    plz = soup2.find('p', class_='text-100 pull-left').text.strip()
+                    plz = re.findall(r"\d{5}", plz)[0]
                 else:
                     plz = ''
                 print('postleitzahl: ' + plz)
