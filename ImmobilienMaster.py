@@ -26,5 +26,4 @@ if __name__ == "__main__":
 
 
 #to do
-#garage/stellplatz dummies
 #wohnung oder haus -> neue spalte

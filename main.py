@@ -61,7 +61,9 @@ if __name__ == "__main__":
 
     Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].fillna(0)
     Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].apply(
-        lambda row: re.sub(r'[\D]', '', row))
+        lambda row: re.sub('[\\D]', '', str(row)))
+    Immoscout24AllBase["anzahl_parkplatz"] = pd.to_numeric(Immoscout24AllBase["anzahl_parkplatz"])
+    Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].fillna(1)
 
     Immoscout24AllBase = Immoscout24AllBase.reindex(sorted(Immoscout24AllBase.columns), axis=1)
 
