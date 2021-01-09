@@ -7,7 +7,7 @@ if __name__ == "__main__":
     #Exceldateien importieren
     Immoscout24Base = pd.read_excel(r"Files/20201124_Immoscout24.xlsx", sheet_name="Häuser Wü und Landkreis")
     Immoscout24Update = pd.read_excel(r"Files/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
-    ImmonetBase = pd.read_excel(r"Files/20201124_Immonet.xlsx", sheet_name="Tabelle2")
+    ImmonetBase = pd.read_excel(r"Files/2021-01-09_Immonet.xlsx", sheet_name="Tabelle2")
 
     #Yaninas Datensätze an Lennart anpassen
     Immoscout24Base.columns = Immoscout24Base.columns.str.lower()
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     ImmobilienAll2 = pd.concat([Immoscout24AllBase, ImmonetBase], axis=0, ignore_index=True, join="outer")
 
-    ImmobilienAll2.to_excel(excel_writer="Files/ImmobilienAll2v2.xlsx", sheet_name="ImmobilienAll")
+    #ImmobilienAll2.to_excel(excel_writer="Files/ImmobilienAll2v3.xlsx", sheet_name="ImmobilienAll")
 
 
     with pd.option_context('display.max_rows', 5, 'display.max_columns', 17):
