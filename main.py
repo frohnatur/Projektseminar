@@ -33,17 +33,19 @@ if __name__ == "__main__":
                  "aufzug": "fahrstuhl", "objektzustand": "immobilienzustand",
                  "keller ja/nein": "unterkellert", "gäste-wc ja/nein": "gaeste_wc",
                  "energie­effizienz­klasse": "energie_effizienzklasse",
-                 "wesentliche energieträger": "befeuerungsart", "end-energie-verbrauch": "energie_verbrauch",
+                 "wesentliche energieträger": "befeuerungsart", "end­energie­verbrauch": "energie_verbrauch",
                  "typ": "immobilienart", "heizungsart": "heizung", "vermietet ja/nein": "vermietet",
                  "garage/ stellplatz": "anzahl_parkplatz"}, inplace=True)
 
-    # Spalteninhalte anpassen: Annahme NaN ist NEIN
+    # Spalteninhalte anpassen:
+    # Annahme NaN ist NEIN
     Immoscout24AllBase["unterkellert"] = Immoscout24AllBase["unterkellert"].apply(
         lambda row: "JA" if row == "keller" else "NEIN")
     Immoscout24AllBase["gaeste_wc"] = Immoscout24AllBase["gaeste_wc"].apply(
         lambda row: "JA" if row == "Gäste-WC" else "NEIN")
     Immoscout24AllBase["barrierefrei"] = Immoscout24AllBase["barrierefrei"].apply(
         lambda row: "JA" if row == 'Stufenloser Zugang' else "NEIN")
+
     Immoscout24AllBase["baujahr"] = pd.to_numeric(Immoscout24AllBase["baujahr"], errors='coerce')
     Immoscout24AllBase["grundstuecksflaeche"] = Immoscout24AllBase["grundstuecksflaeche"].apply(
         lambda row: re.sub('[.m²]', '', row))
@@ -64,6 +66,12 @@ if __name__ == "__main__":
         lambda row: re.sub('[\\D]', '', str(row)))
     Immoscout24AllBase["anzahl_parkplatz"] = pd.to_numeric(Immoscout24AllBase["anzahl_parkplatz"])
     Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].fillna(1)
+
+    Immoscout24AllBase["energie_verbrauch"] = Immoscout24AllBase["energie_verbrauch"].apply(
+        lambda row: re.sub('[^0-9,]', '', str(row)))
+    Immoscout24AllBase["energie_verbrauch"] = Immoscout24AllBase["energie_verbrauch"].apply(
+        lambda row: re.sub(',', '.', str(row)))
+    Immoscout24AllBase["energie_verbrauch"] = pd.to_numeric(Immoscout24AllBase["energie_verbrauch"])
 
     Immoscout24AllBase = Immoscout24AllBase.reindex(sorted(Immoscout24AllBase.columns), axis=1)
 
