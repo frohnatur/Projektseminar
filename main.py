@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import re
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
 
 if __name__ == "__main__":
     # Exceldateien der Scraper importieren
@@ -217,9 +220,39 @@ if __name__ == "__main__":
 
     # Ausgabe
     ImmobilienMaster = ImmobilienMaster.reset_index()
-    print(ImmobilienMaster.info())
+    # print(ImmobilienMaster.info())
 
     ImmobilienMaster.to_excel(excel_writer="Files/ImmobilienMasterV3.xlsx", sheet_name="ImmobilienAll")
+
+    # ML Tests
+    X = ImmobilienMaster.drop(columns=["angebotspreis"]).values
+    y = ImmobilienMaster["angebotspreis"].values
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=20, seed=123)
+    xg_reg.fit(X_train, y_train)
+    preds = xg_reg.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, preds))
+    print("RMSE: %f" % (rmse))
+
+    DM_train = xgb.DMatrix(data=X_train, label=y_train)
+    DM_test = xgb.DMatrix(data=X_test, label=y_test)
+    params = {"booster": "gblinear", "objective": "reg:squarederror"}
+    xg_reg2 = xgb.train(dtrain=DM_train, params=params, num_boost_round=15)
+    preds2 = xg_reg2.predict(DM_test)
+    rmse = np.sqrt(mean_squared_error(y_test, preds2))
+    print("RMSE: %f" % (rmse))
+
+    reg_params = [0.1, 0.3, 0.7, 1, 10, 100]
+    params1 = {"objective": "reg:squarederror", "max_depth": 3}
+    rmses_l2 = []
+    for reg in reg_params:
+        params1["lambda"] = reg
+        cv_results_rmse = xgb.cv(dtrain=DM_train, params=params1, nfold=3, num_boost_round=15, metrics="rmse",
+                                 as_pandas=True)
+        rmses_l2.append(cv_results_rmse["test-rmse-mean"].tail(1).values[0])
+
+    print("Best rmse as a function of l2:")
+    print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
 
     # Display Optionen für Konsole
     # with pd.option_context('display.max_rows', 5, 'display.max_columns', 17):
