@@ -93,16 +93,17 @@ if __name__ == "__main__":
 
     # Zeilen ohne Angebotspreis und nutzlose Spalten droppen
     ImmobilienMaster = ImmobilienMaster.dropna(subset=["angebotspreis"])
-    ImmobilienMaster = ImmobilienMaster.drop(columns=['anzahl_schlafzimmer', 'bezugsfrei ab', "denkmalschutzobjekt", "einbauküche", "immo_url",
-                                                      "energieausweis", "energie­ausweistyp", 'energie_verbrauch', 'etagen' , "fahrstuhl", 'geschoss',
-                                                      "grundbucheintrag",
-                                                      "grunderwerbssteuer", 'hausgeld', "maklerprovision",
-                                                      "modernisierung/ sanierung", "monatsmiete", "notarkosten", "ort",
-                                                      "scoutid",
-                                                      "strasse", "web-scraper-start-url", "wohnung-href",
-                                                      "denkmalschutz", "nutzfläche ca", "ausstattung",
-                                                      "ausstattung beschreibung", "lage",
-                                                      "objektbeschreibung", "sonstiges", "wohnung"])
+    ImmobilienMaster = ImmobilienMaster.drop(
+        columns=[ 'anzahl_schlafzimmer', 'bezugsfrei ab', "denkmalschutzobjekt", "einbauküche", "immo_url",
+                 "energieausweis", "energie­ausweistyp", 'energie_verbrauch', 'etagen', "fahrstuhl", 'geschoss',
+                 "grundbucheintrag",
+                 "grunderwerbssteuer", 'hausgeld', "maklerprovision",
+                 "modernisierung/ sanierung", "monatsmiete", "notarkosten", "ort",
+                 "scoutid",
+                 "strasse", "web-scraper-start-url", "wohnung-href",
+                 "denkmalschutz", "nutzfläche ca", "ausstattung",
+                 "ausstattung beschreibung", "lage",
+                 "objektbeschreibung", "sonstiges", "wohnung"])
 
     # Spalten Datentypen bearbeiten
     ImmobilienMaster["balkon"] = ImmobilienMaster["balkon"].astype("category")
@@ -119,8 +120,7 @@ if __name__ == "__main__":
     ImmobilienMaster["vermietet"] = ImmobilienMaster["vermietet"].astype("category")
     ImmobilienMaster["aufzug"] = ImmobilienMaster["aufzug"].astype("category")
 
-
-    # Doppelkategorien rauswerfen
+    # Doppelkategorien rauswerfen und ähnliche Kategorien zusammenfassen
     ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
         lambda row: str(row).split(",")[0])
     ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
@@ -131,10 +131,35 @@ if __name__ == "__main__":
         lambda row: 'Fernwärme' if row == "Erdwärme" else row)
     ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
         lambda row: 'Sonstige' if row not in ["", np.nan, "Öl", "Gas", "Fernwärme",
-                                              "Luft-/Wasserwärme", "Holz","Pellets","Solar","Strom"] else row)
-
+                                              "Luft-/Wasserwärme", "Holz", "Pellets", "Solar", "Strom"] else row)
     ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].apply(
-        lambda row: 'Sonstige' if row not in ["", np.nan, "Zentralheizung", "Etagenheizung", "Ofenheizung", "Fußbodenheizung"] else row)
+        lambda row: 'Sonstige' if row not in ["", np.nan, "Zentralheizung", "Etagenheizung", "Ofenheizung",
+                                              "Fußbodenheizung"] else row)
+
+    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].apply(
+        lambda row: 'Einfamilienhaus' if row == "Einfamilienhaus (freistehend)" else row)
+
+    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].apply(
+        lambda row: 'Sonstige' if row not in ["", np.nan, "Einfamilienhaus", "Wohngrundstück", "Wohnung", "Etagenwohnung",
+                                               "Sonstiges", "Mehrfamilienhaus", "Erdgeschosswohnung",
+                                               "Dachgeschosswohnung",
+                                               "Zweifamilienhaus", "Doppelhaushälfte", "Villa", "Reihenmittelhaus",
+                                               "Reihenendhaus", "Bungalow",
+                                               "Maisonette", "Apartment", "Stadthaus", "Schloss", "Bauernhaus",
+                                               "Herrenhaus", "Reiheneckhaus", "Penthouse"] else row)
+
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+        lambda row: 'Teil- oder vollrenovierungsbedürftig' if row == "Renovierungsbedürftig" else row)
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+        lambda row: 'Teil- oder vollsaniert' if row == "Saniert" else row)
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+        lambda row: 'Teil- oder vollrenoviert' if row == "Renovierungsbedürftig" else row)
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+        lambda row: 'Sonstige' if row not in ["", np.nan, "Unbekannt", "Erstbezug", "Projektiert", "Neubau",
+                                              "Teil- oder vollrenovierungsbedürftig", "Neuwertig",
+                                              "Teil- oder vollsaniert", "Teil- oder vollrenoviert", "Gepflegt",
+                                              "Altbau", "Modernisiert"] else row)
+
 
 
     # Imputation
@@ -143,34 +168,58 @@ if __name__ == "__main__":
     ImmobilienMaster.loc[ImmobilienMaster["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
     ImmobilienMaster["anzahl_badezimmer"] = ImmobilienMaster["anzahl_badezimmer"].apply(
         lambda x: np.random.choice(range(1, 4), p=[0.65, 0.30, 0.05]) if np.isnan(x) else x)
-
     ImmobilienMaster["anzahl_zimmer"] = ImmobilienMaster["anzahl_zimmer"].apply(
         lambda x: np.random.choice(ImmobilienMaster["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
-
     ImmobilienMaster["baujahr"] = ImmobilienMaster["baujahr"].apply(
         lambda x: np.random.choice(ImmobilienMaster["baujahr"].dropna().values) if np.isnan(x) else x)
 
-    #energie_props = ImmobilienMaster["energie_effizienzklasse"].value_counts(normalize=True).values
-    #energie_types = ImmobilienMaster["energie_effizienzklasse"].value_counts(normalize=True).keys()
-    #ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].fillna(lambda x: np.random.choice(["A", "B"]) if np.isnan(x) else x)
-    #ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].fillna('D')
+    # ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].cat.codes
+    # energie = ImmobilienMaster["energie_effizienzklasse"].value_counts(normalize=True)
+    # energie.drop(labels=[-1])
+    # energie_types = energie.keys()
+    # energie_props = energie.values
+    # ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].fillna(lambda x: np.random.choice(energie_types, energie_props) if x == -1 else x)
+
+    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].astype("category")
+    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].cat.add_categories(
+        ["Unbekannt"])
+    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].fillna("Unbekannt")
+
+    ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].cat.add_categories(
+        ["Unbekannt"])
+    ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].fillna("Unbekannt")
+
+    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].astype("category")
+    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].cat.add_categories(
+        ["Unbekannt"])
+    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].fillna("Unbekannt")
+
+    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].astype("category")
+    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].cat.add_categories(
+        ["Unbekannt"])
+    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].fillna("Unbekannt")
+
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].astype("category")
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].cat.add_categories(
+        ["Unbekannt"])
+    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].fillna("Unbekannt")
+
 
     # Aufzug: Annahme, wenn nicht explizit angegeben, dann existiert kein Aufzug
     ImmobilienMaster.loc[ImmobilienMaster["aufzug"].isna(), "aufzug"] = "NEIN"
 
-
     # ScikitLearn Anforderung: Nur numerische Werte - Transformation der kategorischen Spalten
-    # categorical_mask = (ImmobilienMaster.dtypes == "category")
-    # categorical_columns = ImmobilienMaster.columns[categorical_mask].tolist()
-    # category_enc = pd.get_dummies(ImmobilienMaster[categorical_columns], dummy_na=True)
-    # ImmobilienMaster = pd.concat([ImmobilienMaster, category_enc], axis=1)
-    # ImmobilienMaster = ImmobilienMaster.drop(columns=categorical_columns)
+    categorical_mask = (ImmobilienMaster.dtypes == "category")
+    categorical_columns = ImmobilienMaster.columns[categorical_mask].tolist()
+    category_enc = pd.get_dummies(ImmobilienMaster[categorical_columns], dummy_na=True)
+    ImmobilienMaster = pd.concat([ImmobilienMaster, category_enc], axis=1)
+    ImmobilienMaster = ImmobilienMaster.drop(columns=categorical_columns)
 
     # Ausgabe
+    ImmobilienMaster = ImmobilienMaster.reset_index()
     print(ImmobilienMaster.info())
-    print(ImmobilienMaster["energie_effizienzklasse"].value_counts(normalize=True))
 
-    ImmobilienMaster.to_excel(excel_writer="Files/ImmobilienMasterV2.xlsx", sheet_name="ImmobilienAll")
+    ImmobilienMaster.to_excel(excel_writer="Files/ImmobilienMasterV3.xlsx", sheet_name="ImmobilienAll")
 
     # Display Optionen für Konsole
     # with pd.option_context('display.max_rows', 5, 'display.max_columns', 17):
