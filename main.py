@@ -4,12 +4,14 @@ import re
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
 if __name__ == "__main__":
     # Exceldateien der Scraper importieren
     Immoscout24Base = pd.read_excel(r"Files/20201124_Immoscout24.xlsx", sheet_name="Häuser Wü und Landkreis")
     Immoscout24Update = pd.read_excel(r"Files/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
-    ImmonetBase = pd.read_excel(r"Files/2021-01-09_Immonet.xlsx", sheet_name="Tabelle2")
+    ImmonetBase = pd.read_excel(r"Files/Immobilien_Bayern.xlsx", sheet_name="Tabelle2")
 
     # Immoscout24 Datensätze an Immonet Format anpassen
     Immoscout24Base.columns = Immoscout24Base.columns.str.lower()
@@ -222,7 +224,7 @@ if __name__ == "__main__":
     ImmobilienMaster = ImmobilienMaster.reset_index()
     # print(ImmobilienMaster.info())
 
-    ImmobilienMaster.to_excel(excel_writer="Files/ImmobilienMasterV3.xlsx", sheet_name="ImmobilienAll")
+    ImmobilienMaster.to_excel(excel_writer="Files/ImmobilienMasterV4.xlsx", sheet_name="ImmobilienAll")
 
     # ML Tests
     X = ImmobilienMaster.drop(columns=["angebotspreis"]).values
@@ -233,6 +235,31 @@ if __name__ == "__main__":
     preds = xg_reg.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, preds))
     print("RMSE: %f" % (rmse))
+
+    #Grid Search parameter Tuning
+    gbm_param_grid = {
+        'colsample_bytree': [0.3, 0.7],
+        'n_estimators': [50],
+        'max_depth': [2, 5]
+    }
+
+    gbm = xgb.XGBRegressor(objective="reg:squarederror")
+    grid_mse = GridSearchCV(estimator=gbm, param_grid=gbm_param_grid, scoring="neg_mean_squared_error", cv=4, verbose=1)
+    grid_mse.fit(X_train, y_train)
+    print("Best parameters found: ", grid_mse.best_params_)
+    print("Lowest RMSE Grid Search found: ", np.sqrt(np.abs(grid_mse.best_score_)))
+
+    #Randomized Search parameter tuning
+    gbm_param_grid2 = {
+        'n_estimators': [25],
+        'max_depth': range(2, 12)
+    }
+    gbm2 = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=10)
+    randomized_mse = RandomizedSearchCV(estimator=gbm, param_distributions=gbm_param_grid,
+                                        scoring="neg_mean_squared_error", n_iter=5, cv=4, verbose=1)
+    randomized_mse.fit(X_train, y_train)
+    print("Best parameters found: ", randomized_mse.best_params_)
+    print("Lowest RMSE Randomized Search found: ", np.sqrt(np.abs(randomized_mse.best_score_)))
 
     DM_train = xgb.DMatrix(data=X_train, label=y_train)
     DM_test = xgb.DMatrix(data=X_test, label=y_test)
