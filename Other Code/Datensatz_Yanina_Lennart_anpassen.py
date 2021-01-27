@@ -35,23 +35,19 @@ Immoscout24Base["grundstuecksflaeche"] = pd.to_numeric(Immoscout24Base["grundstu
 
 Immoscout24Base["wohnflaeche"] = pd.to_numeric(Immoscout24Base['wohnflaeche'], errors='ignore')
 
-Immoscout24Base["terrasse"] = Immoscout24Base["balkon"].astype(str).apply(
-    lambda row: "JA" if "Terrasse" in row else "NEIN")
+Immoscout24Base["terrasse"] = Immoscout24Base["balkon"].astype(str).apply(lambda row: "JA" if "Terrasse" in row else "NEIN")
 Immoscout24Base["balkon"] = Immoscout24Base["balkon"].astype(str).apply(lambda row: "JA" if "Balkon" in row else "NEIN")
-Immoscout24Base["vermietet"] = Immoscout24Base["vermietet"].astype(str).apply(
-    lambda row: "JA" if row == "Vermietet" else "NEIN")
+Immoscout24Base["vermietet"] = Immoscout24Base["vermietet"].astype(str).apply(lambda row: "JA" if row == "Vermietet" else "NEIN")
+Immoscout24Base['aufzug'] = Immoscout24Base['aufzug'].astype(str)
+Immoscout24Base["aufzug"] = Immoscout24Base["aufzug"].apply(lambda row: "JA" if row == "Personenaufzug" else "NEIN")
 
 Immoscout24Base["anzahl_parkplatz"] = Immoscout24Base["anzahl_parkplatz"].fillna(0)
-Immoscout24Base["anzahl_parkplatz"] = Immoscout24Base["anzahl_parkplatz"].apply(
-    lambda row: re.sub('[\\D]', '', str(row)))
-Immoscout24Base["anzahl_parkplatz"] = Immoscout24Base["anzahl_parkplatz"].apply(
-    lambda row: "1" if row == "" else str(row))
+Immoscout24Base["anzahl_parkplatz"] = Immoscout24Base["anzahl_parkplatz"].apply(lambda row: re.sub('[\\D]', '', str(row)))
+Immoscout24Base["anzahl_parkplatz"] = Immoscout24Base["anzahl_parkplatz"].apply(lambda row: "1" if row == "" else str(row))
 Immoscout24Base["anzahl_parkplatz"] = pd.to_numeric(Immoscout24Base["anzahl_parkplatz"])
 
-Immoscout24Base["energie_verbrauch"] = Immoscout24Base["energie_verbrauch"].apply(
-    lambda row: re.sub('[^0-9,]', '', str(row)))
-Immoscout24Base["energie_verbrauch"] = Immoscout24Base["energie_verbrauch"].apply(
-    lambda row: re.sub(',', '.', str(row)))
+Immoscout24Base["energie_verbrauch"] = Immoscout24Base["energie_verbrauch"].apply(lambda row: re.sub('[^0-9,]', '', str(row)))
+Immoscout24Base["energie_verbrauch"] = Immoscout24Base["energie_verbrauch"].apply(lambda row: re.sub(',', '.', str(row)))
 Immoscout24Base["energie_verbrauch"] = pd.to_numeric(Immoscout24Base["energie_verbrauch"])
 
 Immoscout24Base['etagen'] = Immoscout24Base['geschoss'].apply(lambda row: re.sub('\d*\svon ', '', str(row)))
@@ -66,8 +62,7 @@ ImmobilienAll = pd.concat([Immoscout24Base, ImmonetBase], axis=0, ignore_index=T
 ImmobilienAll.loc[ImmobilienAll["angebotspreis"] <= 10000, "angebotspreis"] = ImmobilienAll["angebotspreis"] * 1000
 
 #Unwichtige Spalten dropen
-ImmobilienAll = ImmobilienAll.drop(
-    columns=['anzahl_schlafzimmer', 'immo_url', 'energie_verbrauch', 'etagen', 'geschoss', 'ort', 'denkmalschutz'])
+ImmobilienAll = ImmobilienAll.drop(columns=['anzahl_schlafzimmer', 'immo_url', 'energie_verbrauch', 'etagen', 'geschoss', 'ort', 'denkmalschutz'])
 
 
 #Spaltennamen anpassen
@@ -144,34 +139,27 @@ ImmobilienAll["immobilienzustand"] = ImmobilienAll["immobilienzustand"].apply(la
 
 
 ImmobilienAll.loc[ImmobilienAll["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
-ImmobilienAll["anzahl_badezimmer"] = ImmobilienAll["anzahl_badezimmer"].apply(
-    lambda x: np.random.choice(range(1, 4), p=[0.65, 0.30, 0.05]) if np.isnan(x) else x)
-ImmobilienAll["anzahl_zimmer"] = ImmobilienAll["anzahl_zimmer"].apply(
-    lambda x: np.random.choice(ImmobilienAll["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
-ImmobilienAll["baujahr"] = ImmobilienAll["baujahr"].apply(
-    lambda x: np.random.choice(ImmobilienAll["baujahr"].dropna().values) if np.isnan(x) else x)
+ImmobilienAll["anzahl_badezimmer"] = ImmobilienAll["anzahl_badezimmer"].apply(lambda x: np.random.choice(range(1, 4), p=[0.65, 0.30, 0.05]) if np.isnan(x) else x)
+ImmobilienAll["anzahl_zimmer"] = ImmobilienAll["anzahl_zimmer"].apply(lambda x: np.random.choice(ImmobilienAll["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
+ImmobilienAll["baujahr"] = ImmobilienAll["baujahr"].apply(lambda x: np.random.choice(ImmobilienAll["baujahr"].dropna().values) if np.isnan(x) else x)
 
 ImmobilienAll["energietyp"] = ImmobilienAll["energietyp"].astype("category")
-ImmobilienAll["energietyp"] = ImmobilienAll["energietyp"].cat.add_categories(
-    ["Unbekannt"])
+ImmobilienAll["energietyp"] = ImmobilienAll["energietyp"].cat.add_categories(["Unbekannt"])
 ImmobilienAll["energietyp"] = ImmobilienAll["energietyp"].fillna("Unbekannt")
 
 ImmobilienAll["energie_effizienzklasse"] = ImmobilienAll["energie_effizienzklasse"].cat.add_categories(["Unbekannt"])
 ImmobilienAll["energie_effizienzklasse"] = ImmobilienAll["energie_effizienzklasse"].fillna("Unbekannt")
 
 ImmobilienAll["heizung"] = ImmobilienAll["heizung"].astype("category")
-ImmobilienAll["heizung"] = ImmobilienAll["heizung"].cat.add_categories(
-    ["Unbekannt"])
+ImmobilienAll["heizung"] = ImmobilienAll["heizung"].cat.add_categories(["Unbekannt"])
 ImmobilienAll["heizung"] = ImmobilienAll["heizung"].fillna("Unbekannt")
 
 ImmobilienAll["immobilienart"] = ImmobilienAll["immobilienart"].astype("category")
-ImmobilienAll["immobilienart"] = ImmobilienAll["immobilienart"].cat.add_categories(
-    ["Unbekannt"])
+ImmobilienAll["immobilienart"] = ImmobilienAll["immobilienart"].cat.add_categories(["Unbekannt"])
 ImmobilienAll["immobilienart"] = ImmobilienAll["immobilienart"].fillna("Unbekannt")
 
 ImmobilienAll["immobilienzustand"] = ImmobilienAll["immobilienzustand"].astype("category")
-ImmobilienAll["immobilienzustand"] = ImmobilienAll["immobilienzustand"].cat.add_categories(
-    ["Unbekannt"])
+ImmobilienAll["immobilienzustand"] = ImmobilienAll["immobilienzustand"].cat.add_categories(["Unbekannt"])
 ImmobilienAll["immobilienzustand"] = ImmobilienAll["immobilienzustand"].fillna("Unbekannt")
 
 
