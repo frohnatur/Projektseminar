@@ -249,7 +249,10 @@ def ml_tests(imputed_data):
     # print(imputed_data.info())
     # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
 
+
+
     # XGBoost Standardmodell
+    print("XGBoost Standardmodell:")
     X = imputed_data.drop(columns=["angebotspreis"]).values
     y = imputed_data["angebotspreis"].values
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -258,21 +261,28 @@ def ml_tests(imputed_data):
     preds = xg_reg.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, preds))
     print("RMSE: %f" % (rmse))
+    print()
+
+
 
     # Grid Search parameter Tuning
+    print("Grid Search Parameter Tuning:")
     gbm_param_grid = {
         'colsample_bytree': [0.3, 0.7],
         'n_estimators': [50],
         'max_depth': [2, 5]
     }
-
     gbm = xgb.XGBRegressor(objective="reg:squarederror")
     grid_mse = GridSearchCV(estimator=gbm, param_grid=gbm_param_grid, scoring="neg_mean_squared_error", cv=4, verbose=1)
     grid_mse.fit(X_train, y_train)
     print("Best parameters found: ", grid_mse.best_params_)
     print("Lowest RMSE Grid Search found: ", np.sqrt(np.abs(grid_mse.best_score_)))
+    print()
+
+
 
     # Randomized Search parameter tuning
+    print("Randomized Search Parameter Tuning:")
     gbm_param_grid2 = {
         'n_estimators': [25],
         'max_depth': range(2, 12)
@@ -304,8 +314,12 @@ def ml_tests(imputed_data):
 
     print("Best rmse as a function of l2:")
     print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
+    print()
+
+
 
     #Stochastic Gradient Boosting
+    print("Stochastic Gradient Boosting:")
     sgbr = GradientBoostingRegressor(max_depth=4,
                                      subsample=0.9,
                                      max_features=0.75,
@@ -316,14 +330,21 @@ def ml_tests(imputed_data):
     y_pred = sgbr.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     print("RMSE: %f" % (rmse))
+    print()
+
+
 
     #Random Forrest
+    print("Random Forrest:")
     rf = RandomForestRegressor(n_estimators=25,
                                random_state=2)
     rf.fit(X_train, y_train)
     y_pred2 = rf.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred2))
     print("RMSE: %f" % (rmse))
+    print()
+
+
 
 def main():
     immonet_data = read_data_from_immonet()
@@ -333,7 +354,7 @@ def main():
     imputed_data = impute_data(preprocessed_data)
     ml_tests(imputed_data)
 
-    #Testausgabe
+    #Testausgaben
     #immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutTest.xlsx", sheet_name="ImmobilienAll")
     #merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
 
@@ -342,3 +363,36 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Last Run:
+
+# XGBoost Standardmodell:
+# RMSE: 137019.661546
+#
+# Grid Search Parameter Tuning:
+# Fitting 4 folds for each of 4 candidates, totalling 16 fits
+# Best parameters found:  {'colsample_bytree': 0.7, 'max_depth': 2, 'n_estimators': 50}
+# Lowest RMSE Grid Search found:  177284.4177031987
+#
+# Randomized Search Parameter Tuning:
+# Fitting 4 folds for each of 5 candidates, totalling 20 fits
+# Best parameters found:  {'n_estimators': 25, 'max_depth': 5}
+# Lowest RMSE Randomized Search found:  156688.29557870186
+# RMSE: 398490.411472
+# Best rmse as a function of l2:
+#       l2           rmse
+# 0    0.1  155939.911458
+# 1    0.3  157250.669271
+# 2    0.7  156574.890625
+# 3    1.0  156490.554688
+# 4   10.0  163362.427083
+# 5  100.0  246595.109375
+#
+# Stochastic Gradient Boosting:
+# RMSE: 148264.288115
+#
+# Random Forrest:
+# RMSE: 127882.791338
+#
+# fertig...
