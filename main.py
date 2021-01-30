@@ -4,6 +4,8 @@ import re
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 
@@ -275,6 +277,7 @@ def ml_tests(imputed_data):
         'n_estimators': [25],
         'max_depth': range(2, 12)
     }
+
     gbm2 = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=10)
     randomized_mse = RandomizedSearchCV(estimator=gbm2, param_distributions=gbm_param_grid2,
                                         scoring="neg_mean_squared_error", n_iter=5, cv=4, verbose=1)
@@ -302,7 +305,25 @@ def ml_tests(imputed_data):
     print("Best rmse as a function of l2:")
     print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
 
+    #Stochastic Gradient Boosting
+    sgbr = GradientBoostingRegressor(max_depth=4,
+                                     subsample=0.9,
+                                     max_features=0.75,
+                                     n_estimators=200,
+                                     random_state=2)
 
+    sgbr.fit(X_train, y_train)
+    y_pred = sgbr.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print("RMSE: %f" % (rmse))
+
+    #Random Forrest
+    rf = RandomForestRegressor(n_estimators=25,
+                               random_state=2)
+    rf.fit(X_train, y_train)
+    y_pred2 = rf.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred2))
+    print("RMSE: %f" % (rmse))
 
 def main():
     immonet_data = read_data_from_immonet()
