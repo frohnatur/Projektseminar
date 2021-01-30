@@ -241,11 +241,11 @@ def ml_tests(imputed_data):
     imputed_data = pd.concat([imputed_data, category_enc], axis=1)
     imputed_data = imputed_data.drop(columns=categorical_columns)
 
-    # Ausgabe
     imputed_data = imputed_data.reset_index()
-    # print(imputed_data.info())
 
-    imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
+    # Ausgabe
+    # print(imputed_data.info())
+    # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
 
     # XGBoost Standardmodell
     X = imputed_data.drop(columns=["angebotspreis"]).values
