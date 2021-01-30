@@ -308,6 +308,9 @@ def main():
     immonet_data = read_data_from_immonet()
     immoscout_data = read_data_from_immoscout()
     merged_data = merge_data(immonet_data, immoscout_data)
+    preprocessed_data = preprocess_data(merged_data)
+    imputed_data = impute_data(preprocessed_data)
+    ml_tests(imputed_data)
 
     #Testausgabe
     #immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutTest.xlsx", sheet_name="ImmobilienAll")
