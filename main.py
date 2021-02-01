@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import re
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
@@ -259,6 +260,13 @@ def ml_tests(imputed_data):
     rmse = np.sqrt(mean_squared_error(y_test, preds))
     print("RMSE: %f" % (rmse))
 
+    importances = pd.Series(data=xg_reg.feature_importances_,
+                            index=X_train.columns)
+    importances_sorted = importances.sort_values()
+    importances_sorted.plot(kind='barh', color='lightgreen')
+    plt.title('Features Importances')
+    plt.show()
+
     # Grid Search parameter Tuning
     gbm_param_grid = {
         'colsample_bytree': [0.3, 0.7],
@@ -317,6 +325,13 @@ def ml_tests(imputed_data):
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     print("RMSE: %f" % (rmse))
 
+    importances = pd.Series(data=sgbr.feature_importances_,
+                            index=X_train.columns)
+    importances_sorted = importances.sort_values()
+    importances_sorted.plot(kind='barh', color='lightgreen')
+    plt.title('Features Importances')
+    plt.show()
+
     #Random Forrest
     rf = RandomForestRegressor(n_estimators=25,
                                random_state=2)
@@ -324,6 +339,13 @@ def ml_tests(imputed_data):
     y_pred2 = rf.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, y_pred2))
     print("RMSE: %f" % (rmse))
+
+    importances = pd.Series(data=rf.feature_importances_,
+                            index=X_train.columns)
+    importances_sorted = importances.sort_values()
+    importances_sorted.plot(kind='barh', color='lightgreen')
+    plt.title('Features Importances')
+    plt.show()
 
 def main():
     immonet_data = read_data_from_immonet()
