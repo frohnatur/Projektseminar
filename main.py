@@ -11,16 +11,15 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 
 
-
 def read_data_from_immonet():
     immonet_data = pd.read_excel(r"Files/Immobilien_Bayern.xlsx", sheet_name="Tabelle2")
 
     return immonet_data
 
 
-
 def read_data_from_immoscout():
-    immoscout_data_haeuser = pd.read_excel(r"Files/Archive/20201124_Immoscout24.xlsx", sheet_name="Häuser Wü und Landkreis")
+    immoscout_data_haeuser = pd.read_excel(r"Files/Archive/20201124_Immoscout24.xlsx",
+                                           sheet_name="Häuser Wü und Landkreis")
     immoscout_data_wohnungen = pd.read_excel(r"Files/Archive/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
 
     immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
@@ -28,10 +27,9 @@ def read_data_from_immoscout():
     return immoscout_data
 
 
-
 def merge_data(immonet_data, immoscout_data):
     # Immoscout Format an Immonet Format anpassen:
-    
+
     immoscout_data.columns = immoscout_data.columns.str.lower()
     immoscout_data["plz"] = immoscout_data["plz und ort"].apply(lambda row: row[:5])
     immoscout_data["ort"] = immoscout_data["plz und ort"].apply(lambda row: row[5:])
@@ -63,10 +61,10 @@ def merge_data(immonet_data, immoscout_data):
     immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
         lambda row: re.sub('[.m²]', '', row))
     immoscout_data["grundstuecksflaeche"] = pd.to_numeric(immoscout_data["grundstuecksflaeche"],
-                                                              errors="ignore")
+                                                          errors="ignore")
     immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].apply(lambda row: re.sub('[m²]', '', row))
     immoscout_data["wohnflaeche"] = pd.to_numeric(immoscout_data["wohnflaeche"].str.replace(",", "."),
-                                                      errors="ignore")
+                                                  errors="ignore")
     immoscout_data["terrasse"] = immoscout_data["balkon"].astype(str).apply(
         lambda row: "JA" if "Terrasse" in row else "NEIN")
     immoscout_data["balkon"] = immoscout_data["balkon"].astype(str).apply(
@@ -90,16 +88,14 @@ def merge_data(immonet_data, immoscout_data):
     immonet_data = immonet_data.reindex(sorted(immonet_data.columns), axis=1)
     immoscout_data = immoscout_data.reindex(sorted(immoscout_data.columns), axis=1)
 
-    #merged_data_innerjoin = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="inner")
+    # merged_data_innerjoin = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="inner")
 
     merged_data = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="outer")
 
     return merged_data
 
 
-
 def preprocess_data(merged_data):
-
     # Tausender Stellen - Scraper Fehler -> abgeschnittene Nullen korrigieren
     merged_data.loc[merged_data["angebotspreis"] <= 10000, "angebotspreis"] = merged_data["angebotspreis"] * 1000
 
@@ -183,9 +179,7 @@ def preprocess_data(merged_data):
     return preprocessed_data
 
 
-
 def impute_data(preprocessed_data):
-
     # Zufällig mit vorhandenen Werten auffüllen
     preprocessed_data.loc[preprocessed_data["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
     preprocessed_data["anzahl_badezimmer"] = preprocessed_data["anzahl_badezimmer"].apply(
@@ -234,9 +228,16 @@ def impute_data(preprocessed_data):
     return imputed_data
 
 
+def print_feature_importances(model, X_train):
+    importances = pd.Series(data=model.feature_importances_,
+                            index=X_train.columns)
+    importances_sorted = importances.sort_values()
+    importances_sorted.plot(kind='barh', color='lightgreen')
+    plt.title('Features Importances')
+    plt.show()
+
 
 def ml_tests(imputed_data):
-
     # ScikitLearn Anforderung: Nur numerische Werte - Transformation der kategorischen Spalten
     categorical_mask = (imputed_data.dtypes == "category")
     categorical_columns = imputed_data.columns[categorical_mask].tolist()
@@ -250,8 +251,6 @@ def ml_tests(imputed_data):
     # print(imputed_data.info())
     # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
 
-
-
     # XGBoost Standardmodell
     print("XGBoost Standardmodell:")
     X = imputed_data.drop(columns=["angebotspreis"]).values
@@ -264,14 +263,7 @@ def ml_tests(imputed_data):
     print("RMSE: %f" % (rmse))
     print()
 
-
-
-    importances = pd.Series(data=xg_reg.feature_importances_,
-                            index=X_train.columns)
-    importances_sorted = importances.sort_values()
-    importances_sorted.plot(kind='barh', color='lightgreen')
-    plt.title('Features Importances')
-    plt.show()
+    print_feature_importances(model=xg_reg, X_train=X_train)
 
     # Grid Search parameter Tuning
     print("Grid Search Parameter Tuning:")
@@ -286,8 +278,6 @@ def ml_tests(imputed_data):
     print("Best parameters found: ", grid_mse.best_params_)
     print("Lowest RMSE Grid Search found: ", np.sqrt(np.abs(grid_mse.best_score_)))
     print()
-
-
 
     # Randomized Search parameter tuning
     print("Randomized Search Parameter Tuning:")
@@ -324,9 +314,9 @@ def ml_tests(imputed_data):
     print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
     print()
 
+    print_feature_importances(model=xg_reg2, X_train=X_train)
 
-
-    #Stochastic Gradient Boosting
+    # Stochastic Gradient Boosting
     print("Stochastic Gradient Boosting:")
     sgbr = GradientBoostingRegressor(max_depth=4,
                                      subsample=0.9,
@@ -340,16 +330,9 @@ def ml_tests(imputed_data):
     print("RMSE: %f" % (rmse))
     print()
 
+    print_feature_importances(model=sgbr, X_train=X_train)
 
-
-    importances = pd.Series(data=sgbr.feature_importances_,
-                            index=X_train.columns)
-    importances_sorted = importances.sort_values()
-    importances_sorted.plot(kind='barh', color='lightgreen')
-    plt.title('Features Importances')
-    plt.show()
-
-    #Random Forrest
+    # Random Forrest
     print("Random Forrest:")
     rf = RandomForestRegressor(n_estimators=25,
                                random_state=2)
@@ -359,14 +342,8 @@ def ml_tests(imputed_data):
     print("RMSE: %f" % (rmse))
     print()
 
+    print_feature_importances(model=rf, X_train=X_train)
 
-
-    importances = pd.Series(data=rf.feature_importances_,
-                            index=X_train.columns)
-    importances_sorted = importances.sort_values()
-    importances_sorted.plot(kind='barh', color='lightgreen')
-    plt.title('Features Importances')
-    plt.show()
 
 def main():
     immonet_data = read_data_from_immonet()
@@ -376,16 +353,15 @@ def main():
     imputed_data = impute_data(preprocessed_data)
     ml_tests(imputed_data)
 
-    #Testausgaben
-    #immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutTest.xlsx", sheet_name="ImmobilienAll")
-    #merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
+    # Testausgaben
+    # immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutTest.xlsx", sheet_name="ImmobilienAll")
+    # merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
 
     print("fertig...")
 
 
 if __name__ == "__main__":
     main()
-
 
 # Last Run:
 
