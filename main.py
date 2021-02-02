@@ -1,36 +1,42 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import re
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 
-if __name__ == "__main__":
-    # Exceldateien der Scraper importieren
-    Immoscout24Base = pd.read_excel(r"Files/20201124_Immoscout24.xlsx", sheet_name="Häuser Wü und Landkreis")
-    Immoscout24Update = pd.read_excel(r"Files/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
-    ImmonetBase = pd.read_excel(r"Files/Immobilien_Bayern.xlsx", sheet_name="Tabelle2")
 
-    # Immoscout24 Datensätze an Immonet Format anpassen
-    Immoscout24Base.columns = Immoscout24Base.columns.str.lower()
-    Immoscout24Base["plz"] = Immoscout24Base["plz und ort"].apply(lambda row: row[:5])
-    Immoscout24Base["ort"] = Immoscout24Base["plz und ort"].apply(lambda row: row[5:])
-    Immoscout24Base = Immoscout24Base.drop(columns="plz und ort")
+def read_data_from_immonet():
+    immonet_data = pd.read_excel(r"Files/Immobilien_Bayern.xlsx", sheet_name="Tabelle2")
 
-    Immoscout24Update.columns = Immoscout24Update.columns.str.lower()
-    Immoscout24Update["plz"] = Immoscout24Update["plz und ort"].apply(lambda row: row[:5])
-    Immoscout24Update["ort"] = Immoscout24Update["plz und ort"].apply(lambda row: row[5:])
-    Immoscout24Update = Immoscout24Update.drop(columns=["plz und ort", "web-scraper-order"])
+    return immonet_data
 
-    Immoscout24Base = Immoscout24Base.reindex(sorted(Immoscout24Base.columns), axis=1)
-    Immoscout24Update = Immoscout24Update.reindex(sorted(Immoscout24Update.columns), axis=1)
-    ImmonetBase = ImmonetBase.reindex(sorted(ImmonetBase.columns), axis=1)
 
-    # Yaninas Datensätze zusammenführen und Spalten umbenennen
-    Immoscout24AllBase = pd.concat([Immoscout24Base, Immoscout24Update], axis=0, ignore_index=True)
-    Immoscout24AllBase.rename(
+def read_data_from_immoscout():
+    immoscout_data_haeuser = pd.read_excel(r"Files/Archive/20201124_Immoscout24.xlsx",
+                                           sheet_name="Häuser Wü und Landkreis")
+    immoscout_data_wohnungen = pd.read_excel(r"Files/Archive/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
+
+    immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
+
+    return immoscout_data
+
+
+def merge_data(immonet_data, immoscout_data):
+    # Immoscout Format an Immonet Format anpassen:
+
+    immoscout_data.columns = immoscout_data.columns.str.lower()
+    immoscout_data["plz"] = immoscout_data["plz und ort"].apply(lambda row: row[:5])
+    immoscout_data["ort"] = immoscout_data["plz und ort"].apply(lambda row: row[5:])
+
+    immoscout_data = immoscout_data.drop(columns=["plz und ort", "web-scraper-order"])
+
+    immoscout_data.rename(
         columns={"anzahl badezimmer": "anzahl_badezimmer", "anzahl schlafzimmer": "anzahl_schlafzimmer",
                  "zimmer": "anzahl_zimmer", "einkaufspreis": "angebotspreis",
                  "balkon/ terrasse": "balkon", "wohnfläche": "wohnflaeche", "etage": "geschoss",
@@ -44,62 +50,64 @@ if __name__ == "__main__":
 
     # Spalteninhalte anpassen:
     # Annahme NaN ist NEIN
-    Immoscout24AllBase["unterkellert"] = Immoscout24AllBase["unterkellert"].apply(
+    immoscout_data["unterkellert"] = immoscout_data["unterkellert"].apply(
         lambda row: "JA" if row == "keller" else "NEIN")
-    Immoscout24AllBase["gaeste_wc"] = Immoscout24AllBase["gaeste_wc"].apply(
+    immoscout_data["gaeste_wc"] = immoscout_data["gaeste_wc"].apply(
         lambda row: "JA" if row == "Gäste-WC" else "NEIN")
-    Immoscout24AllBase["barrierefrei"] = Immoscout24AllBase["barrierefrei"].apply(
+    immoscout_data["barrierefrei"] = immoscout_data["barrierefrei"].apply(
         lambda row: "JA" if row == 'Stufenloser Zugang' else "NEIN")
 
-    Immoscout24AllBase["baujahr"] = pd.to_numeric(Immoscout24AllBase["baujahr"], errors='coerce')
-    Immoscout24AllBase["grundstuecksflaeche"] = Immoscout24AllBase["grundstuecksflaeche"].apply(
+    immoscout_data["baujahr"] = pd.to_numeric(immoscout_data["baujahr"], errors='coerce')
+    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
         lambda row: re.sub('[.m²]', '', row))
-    Immoscout24AllBase["grundstuecksflaeche"] = pd.to_numeric(Immoscout24AllBase["grundstuecksflaeche"],
-                                                              errors="ignore")
-    Immoscout24AllBase["wohnflaeche"] = Immoscout24AllBase["wohnflaeche"].apply(lambda row: re.sub('[m²]', '', row))
-    Immoscout24AllBase["wohnflaeche"] = pd.to_numeric(Immoscout24AllBase["wohnflaeche"].str.replace(",", "."),
-                                                      errors="ignore")
-    Immoscout24AllBase["terrasse"] = Immoscout24AllBase["balkon"].astype(str).apply(
+    immoscout_data["grundstuecksflaeche"] = pd.to_numeric(immoscout_data["grundstuecksflaeche"],
+                                                          errors="ignore")
+    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].apply(lambda row: re.sub('[m²]', '', row))
+    immoscout_data["wohnflaeche"] = pd.to_numeric(immoscout_data["wohnflaeche"].str.replace(",", "."),
+                                                  errors="ignore")
+    immoscout_data["terrasse"] = immoscout_data["balkon"].astype(str).apply(
         lambda row: "JA" if "Terrasse" in row else "NEIN")
-    Immoscout24AllBase["balkon"] = Immoscout24AllBase["balkon"].astype(str).apply(
+    immoscout_data["balkon"] = immoscout_data["balkon"].astype(str).apply(
         lambda row: "JA" if "Balkon" in row else "NEIN")
-    Immoscout24AllBase["vermietet"] = Immoscout24AllBase["vermietet"].astype(str).apply(
+    immoscout_data["vermietet"] = immoscout_data["vermietet"].astype(str).apply(
         lambda row: "JA" if row == "Vermietet" else "NEIN")
 
-    Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].fillna(0)
-    Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].apply(
+    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].fillna(0)
+    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].apply(
         lambda row: re.sub('[\\D]', '', str(row)))
-    Immoscout24AllBase["anzahl_parkplatz"] = pd.to_numeric(Immoscout24AllBase["anzahl_parkplatz"])
-    Immoscout24AllBase["anzahl_parkplatz"] = Immoscout24AllBase["anzahl_parkplatz"].fillna(1)
+    immoscout_data["anzahl_parkplatz"] = pd.to_numeric(immoscout_data["anzahl_parkplatz"])
+    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].fillna(1)
 
-    Immoscout24AllBase["energie_verbrauch"] = Immoscout24AllBase["energie_verbrauch"].apply(
+    immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
         lambda row: re.sub('[^0-9,]', '', str(row)))
-    Immoscout24AllBase["energie_verbrauch"] = Immoscout24AllBase["energie_verbrauch"].apply(
+    immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
         lambda row: re.sub(',', '.', str(row)))
-    Immoscout24AllBase["energie_verbrauch"] = pd.to_numeric(Immoscout24AllBase["energie_verbrauch"])
+    immoscout_data["energie_verbrauch"] = pd.to_numeric(immoscout_data["energie_verbrauch"])
 
-    Immoscout24AllBase = Immoscout24AllBase.reindex(sorted(Immoscout24AllBase.columns), axis=1)
+    # Spalten alphabetisch sortieren
+    immonet_data = immonet_data.reindex(sorted(immonet_data.columns), axis=1)
+    immoscout_data = immoscout_data.reindex(sorted(immoscout_data.columns), axis=1)
 
-    ImmobilienAll = pd.concat([Immoscout24AllBase, ImmonetBase], axis=0, ignore_index=True, join="inner")
+    # merged_data_innerjoin = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="inner")
 
-    ImmobilienAll2 = pd.concat([Immoscout24AllBase, ImmonetBase], axis=0, ignore_index=True, join="outer")
+    merged_data = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="outer")
 
-    ImmobilienAll2.to_excel(excel_writer="Files/ImmobilienAll2v3.xlsx", sheet_name="ImmobilienAll")
+    return merged_data
 
-    # Datensatz einlesen
-    ImmobilienMaster = pd.read_excel(r"Files/ImmobilienAll2v3.xlsx", index_col="Unnamed: 0")
 
+def preprocess_data(merged_data):
     # Tausender Stellen - Scraper Fehler -> abgeschnittene Nullen korrigieren
-    ImmobilienMaster.loc[ImmobilienMaster["angebotspreis"] <= 10000, "angebotspreis"] = ImmobilienMaster[
-                                                                                            "angebotspreis"] * 1000
+    merged_data.loc[merged_data["angebotspreis"] <= 10000, "angebotspreis"] = merged_data["angebotspreis"] * 1000
 
     # Umbenennungen
-    ImmobilienMaster.rename(columns={"befeuerungsart": "energietyp"}, inplace=True)
+    merged_data.rename(columns={"befeuerungsart": "energietyp"}, inplace=True)
 
-    # Zeilen ohne Angebotspreis und nutzlose Spalten droppen
-    ImmobilienMaster = ImmobilienMaster.dropna(subset=["angebotspreis"])
-    ImmobilienMaster = ImmobilienMaster.drop(
-        columns=[ 'anzahl_schlafzimmer', 'bezugsfrei ab', "denkmalschutzobjekt", "einbauküche", "immo_url",
+    # Zeilen ohne Angebotspreis droppen
+    merged_data = merged_data.dropna(subset=["angebotspreis"])
+
+    # Nicht verwendbare Spalten droppen
+    merged_data = merged_data.drop(
+        columns=['anzahl_schlafzimmer', 'bezugsfrei ab', "denkmalschutzobjekt", "einbauküche", "immo_url",
                  "energieausweis", "energie­ausweistyp", 'energie_verbrauch', 'etagen', "fahrstuhl", 'geschoss',
                  "grundbucheintrag",
                  "grunderwerbssteuer", 'hausgeld', "maklerprovision",
@@ -110,73 +118,76 @@ if __name__ == "__main__":
                  "ausstattung beschreibung", "lage",
                  "objektbeschreibung", "sonstiges", "wohnung"])
 
-    # Spalten Datentypen bearbeiten
-    ImmobilienMaster["balkon"] = ImmobilienMaster["balkon"].astype("category")
-    ImmobilienMaster["barrierefrei"] = ImmobilienMaster["barrierefrei"].astype("category")
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].astype("category")
-    ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].astype("category")
-    ImmobilienMaster["gaeste_wc"] = ImmobilienMaster["gaeste_wc"].astype("category")
-    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].astype("category")
-    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].astype("category")
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].astype("category")
-    ImmobilienMaster["plz"] = ImmobilienMaster["plz"].astype("category")
-    ImmobilienMaster["terrasse"] = ImmobilienMaster["terrasse"].astype("category")
-    ImmobilienMaster["unterkellert"] = ImmobilienMaster["unterkellert"].astype("category")
-    ImmobilienMaster["vermietet"] = ImmobilienMaster["vermietet"].astype("category")
-    ImmobilienMaster["aufzug"] = ImmobilienMaster["aufzug"].astype("category")
+    # Spalten-Datentypen bearbeiten
+    merged_data["balkon"] = merged_data["balkon"].astype("category")
+    merged_data["barrierefrei"] = merged_data["barrierefrei"].astype("category")
+    merged_data["energietyp"] = merged_data["energietyp"].astype("category")
+    merged_data["energie_effizienzklasse"] = merged_data["energie_effizienzklasse"].astype("category")
+    merged_data["gaeste_wc"] = merged_data["gaeste_wc"].astype("category")
+    merged_data["heizung"] = merged_data["heizung"].astype("category")
+    merged_data["immobilienart"] = merged_data["immobilienart"].astype("category")
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].astype("category")
+    merged_data["plz"] = merged_data["plz"].astype("category")
+    merged_data["terrasse"] = merged_data["terrasse"].astype("category")
+    merged_data["unterkellert"] = merged_data["unterkellert"].astype("category")
+    merged_data["vermietet"] = merged_data["vermietet"].astype("category")
+    merged_data["aufzug"] = merged_data["aufzug"].astype("category")
 
-    # Doppelkategorien rauswerfen und ähnliche Kategorien zusammenfassen
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
+    # Kategorische Spalten anpassen (Kategorien zusammenfassen, kleine Kategorien in Sammler "Sonstige" zusammenfassen)
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
         lambda row: str(row).split(",")[0])
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
         lambda row: 'Pellets' if row == "Holzpellets" else row)
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
         lambda row: 'Gas' if row == "Flüssiggas" else row)
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
         lambda row: 'Fernwärme' if row == "Erdwärme" else row)
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].apply(
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
         lambda row: 'Sonstige' if row not in ["", np.nan, "Öl", "Gas", "Fernwärme",
                                               "Luft-/Wasserwärme", "Holz", "Pellets", "Solar", "Strom"] else row)
-    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].apply(
+    merged_data["heizung"] = merged_data["heizung"].apply(
         lambda row: 'Sonstige' if row not in ["", np.nan, "Zentralheizung", "Etagenheizung", "Ofenheizung",
                                               "Fußbodenheizung"] else row)
 
-    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].apply(
+    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
         lambda row: 'Einfamilienhaus' if row == "Einfamilienhaus (freistehend)" else row)
 
-    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].apply(
-        lambda row: 'Sonstige' if row not in ["", np.nan, "Einfamilienhaus", "Wohngrundstück", "Wohnung", "Etagenwohnung",
-                                               "Sonstiges", "Mehrfamilienhaus", "Erdgeschosswohnung",
-                                               "Dachgeschosswohnung",
-                                               "Zweifamilienhaus", "Doppelhaushälfte", "Villa", "Reihenmittelhaus",
-                                               "Reihenendhaus", "Bungalow",
-                                               "Maisonette", "Apartment", "Stadthaus", "Schloss", "Bauernhaus",
-                                               "Herrenhaus", "Reiheneckhaus", "Penthouse"] else row)
+    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
+        lambda row: 'Sonstige' if row not in ["", np.nan, "Einfamilienhaus", "Wohngrundstück", "Wohnung",
+                                              "Etagenwohnung",
+                                              "Sonstiges", "Mehrfamilienhaus", "Erdgeschosswohnung",
+                                              "Dachgeschosswohnung",
+                                              "Zweifamilienhaus", "Doppelhaushälfte", "Villa", "Reihenmittelhaus",
+                                              "Reihenendhaus", "Bungalow",
+                                              "Maisonette", "Apartment", "Stadthaus", "Schloss", "Bauernhaus",
+                                              "Herrenhaus", "Reiheneckhaus", "Penthouse"] else row)
 
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
         lambda row: 'Teil- oder vollrenovierungsbedürftig' if row == "Renovierungsbedürftig" else row)
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
         lambda row: 'Teil- oder vollsaniert' if row == "Saniert" else row)
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
         lambda row: 'Teil- oder vollrenoviert' if row == "Renovierungsbedürftig" else row)
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].apply(
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
         lambda row: 'Sonstige' if row not in ["", np.nan, "Unbekannt", "Erstbezug", "Projektiert", "Neubau",
                                               "Teil- oder vollrenovierungsbedürftig", "Neuwertig",
                                               "Teil- oder vollsaniert", "Teil- oder vollrenoviert", "Gepflegt",
                                               "Altbau", "Modernisiert"] else row)
 
+    preprocessed_data = merged_data
+
+    return preprocessed_data
 
 
-    # Imputation
-
+def impute_data(preprocessed_data):
     # Zufällig mit vorhandenen Werten auffüllen
-    ImmobilienMaster.loc[ImmobilienMaster["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
-    ImmobilienMaster["anzahl_badezimmer"] = ImmobilienMaster["anzahl_badezimmer"].apply(
+    preprocessed_data.loc[preprocessed_data["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
+    preprocessed_data["anzahl_badezimmer"] = preprocessed_data["anzahl_badezimmer"].apply(
         lambda x: np.random.choice(range(1, 4), p=[0.65, 0.30, 0.05]) if np.isnan(x) else x)
-    ImmobilienMaster["anzahl_zimmer"] = ImmobilienMaster["anzahl_zimmer"].apply(
-        lambda x: np.random.choice(ImmobilienMaster["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
-    ImmobilienMaster["baujahr"] = ImmobilienMaster["baujahr"].apply(
-        lambda x: np.random.choice(ImmobilienMaster["baujahr"].dropna().values) if np.isnan(x) else x)
+    preprocessed_data["anzahl_zimmer"] = preprocessed_data["anzahl_zimmer"].apply(
+        lambda x: np.random.choice(preprocessed_data["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
+    preprocessed_data["baujahr"] = preprocessed_data["baujahr"].apply(
+        lambda x: np.random.choice(preprocessed_data["baujahr"].dropna().values) if np.isnan(x) else x)
 
     # ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].cat.codes
     # energie = ImmobilienMaster["energie_effizienzklasse"].value_counts(normalize=True)
@@ -185,77 +196,98 @@ if __name__ == "__main__":
     # energie_props = energie.values
     # ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].fillna(lambda x: np.random.choice(energie_types, energie_props) if x == -1 else x)
 
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].astype("category")
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].cat.add_categories(
+    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].astype("category")
+    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].cat.add_categories(
         ["Unbekannt"])
-    ImmobilienMaster["energietyp"] = ImmobilienMaster["energietyp"].fillna("Unbekannt")
+    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].fillna("Unbekannt")
 
-    ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].cat.add_categories(
+    preprocessed_data["energie_effizienzklasse"] = preprocessed_data["energie_effizienzklasse"].cat.add_categories(
         ["Unbekannt"])
-    ImmobilienMaster["energie_effizienzklasse"] = ImmobilienMaster["energie_effizienzklasse"].fillna("Unbekannt")
+    preprocessed_data["energie_effizienzklasse"] = preprocessed_data["energie_effizienzklasse"].fillna("Unbekannt")
 
-    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].astype("category")
-    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].cat.add_categories(
+    preprocessed_data["heizung"] = preprocessed_data["heizung"].astype("category")
+    preprocessed_data["heizung"] = preprocessed_data["heizung"].cat.add_categories(
         ["Unbekannt"])
-    ImmobilienMaster["heizung"] = ImmobilienMaster["heizung"].fillna("Unbekannt")
+    preprocessed_data["heizung"] = preprocessed_data["heizung"].fillna("Unbekannt")
 
-    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].astype("category")
-    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].cat.add_categories(
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].astype("category")
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].cat.add_categories(
         ["Unbekannt"])
-    ImmobilienMaster["immobilienart"] = ImmobilienMaster["immobilienart"].fillna("Unbekannt")
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].fillna("Unbekannt")
 
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].astype("category")
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].cat.add_categories(
+    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].astype("category")
+    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].cat.add_categories(
         ["Unbekannt"])
-    ImmobilienMaster["immobilienzustand"] = ImmobilienMaster["immobilienzustand"].fillna("Unbekannt")
-
+    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].fillna("Unbekannt")
 
     # Aufzug: Annahme, wenn nicht explizit angegeben, dann existiert kein Aufzug
-    ImmobilienMaster.loc[ImmobilienMaster["aufzug"].isna(), "aufzug"] = "NEIN"
+    preprocessed_data.loc[preprocessed_data["aufzug"].isna(), "aufzug"] = "NEIN"
 
+    imputed_data = preprocessed_data
+
+    return imputed_data
+
+
+def print_feature_importances(model, X_train):
+    importances = pd.Series(data=model.feature_importances_,
+                            index=X_train.columns)
+    importances_sorted = importances.sort_values()
+    importances_sorted.plot(kind='barh', color='lightgreen')
+    plt.title('Features Importances')
+    plt.show()
+
+
+def ml_tests(imputed_data):
     # ScikitLearn Anforderung: Nur numerische Werte - Transformation der kategorischen Spalten
-    categorical_mask = (ImmobilienMaster.dtypes == "category")
-    categorical_columns = ImmobilienMaster.columns[categorical_mask].tolist()
-    category_enc = pd.get_dummies(ImmobilienMaster[categorical_columns], dummy_na=True)
-    ImmobilienMaster = pd.concat([ImmobilienMaster, category_enc], axis=1)
-    ImmobilienMaster = ImmobilienMaster.drop(columns=categorical_columns)
+    categorical_mask = (imputed_data.dtypes == "category")
+    categorical_columns = imputed_data.columns[categorical_mask].tolist()
+    category_enc = pd.get_dummies(imputed_data[categorical_columns])
+    imputed_data = pd.concat([imputed_data, category_enc], axis=1)
+    imputed_data = imputed_data.drop(columns=categorical_columns)
+
+    imputed_data = imputed_data.reset_index()
 
     # Ausgabe
-    ImmobilienMaster = ImmobilienMaster.reset_index()
-    # print(ImmobilienMaster.info())
+    # print(imputed_data.info())
+    # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
 
-    ImmobilienMaster.to_excel(excel_writer="Files/ImmobilienMasterV4.xlsx", sheet_name="ImmobilienAll")
-
-    # ML Tests
-    X = ImmobilienMaster.drop(columns=["angebotspreis"]).values
-    y = ImmobilienMaster["angebotspreis"].values
+    # XGBoost Standardmodell
+    print("XGBoost Standardmodell:")
+    X = imputed_data.drop(columns=["angebotspreis"]).values
+    y = imputed_data["angebotspreis"].values
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=20, seed=123)
     xg_reg.fit(X_train, y_train)
     preds = xg_reg.predict(X_test)
     rmse = np.sqrt(mean_squared_error(y_test, preds))
     print("RMSE: %f" % (rmse))
+    print()
 
-    #Grid Search parameter Tuning
+    print_feature_importances(model=xg_reg, X_train=X_train)
+
+    # Grid Search parameter Tuning
+    print("Grid Search Parameter Tuning:")
     gbm_param_grid = {
         'colsample_bytree': [0.3, 0.7],
         'n_estimators': [50],
         'max_depth': [2, 5]
     }
-
     gbm = xgb.XGBRegressor(objective="reg:squarederror")
     grid_mse = GridSearchCV(estimator=gbm, param_grid=gbm_param_grid, scoring="neg_mean_squared_error", cv=4, verbose=1)
     grid_mse.fit(X_train, y_train)
     print("Best parameters found: ", grid_mse.best_params_)
     print("Lowest RMSE Grid Search found: ", np.sqrt(np.abs(grid_mse.best_score_)))
+    print()
 
-    #Randomized Search parameter tuning
+    # Randomized Search parameter tuning
+    print("Randomized Search Parameter Tuning:")
     gbm_param_grid2 = {
         'n_estimators': [25],
         'max_depth': range(2, 12)
     }
+
     gbm2 = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=10)
-    randomized_mse = RandomizedSearchCV(estimator=gbm, param_distributions=gbm_param_grid,
+    randomized_mse = RandomizedSearchCV(estimator=gbm2, param_distributions=gbm_param_grid2,
                                         scoring="neg_mean_squared_error", n_iter=5, cv=4, verbose=1)
     randomized_mse.fit(X_train, y_train)
     print("Best parameters found: ", randomized_mse.best_params_)
@@ -280,7 +312,85 @@ if __name__ == "__main__":
 
     print("Best rmse as a function of l2:")
     print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
+    print()
 
-    # Display Optionen für Konsole
-    # with pd.option_context('display.max_rows', 5, 'display.max_columns', 17):
-    #   print(ImmobilienMaster)
+    print_feature_importances(model=xg_reg2, X_train=X_train)
+
+    # Stochastic Gradient Boosting
+    print("Stochastic Gradient Boosting:")
+    sgbr = GradientBoostingRegressor(max_depth=4,
+                                     subsample=0.9,
+                                     max_features=0.75,
+                                     n_estimators=200,
+                                     random_state=2)
+
+    sgbr.fit(X_train, y_train)
+    y_pred = sgbr.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print("RMSE: %f" % (rmse))
+    print()
+
+    print_feature_importances(model=sgbr, X_train=X_train)
+
+    # Random Forrest
+    print("Random Forrest:")
+    rf = RandomForestRegressor(n_estimators=25,
+                               random_state=2)
+    rf.fit(X_train, y_train)
+    y_pred2 = rf.predict(X_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred2))
+    print("RMSE: %f" % (rmse))
+    print()
+
+    print_feature_importances(model=rf, X_train=X_train)
+
+
+def main():
+    immonet_data = read_data_from_immonet()
+    immoscout_data = read_data_from_immoscout()
+    merged_data = merge_data(immonet_data, immoscout_data)
+    preprocessed_data = preprocess_data(merged_data)
+    imputed_data = impute_data(preprocessed_data)
+    ml_tests(imputed_data)
+
+    # Testausgaben
+    # immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutTest.xlsx", sheet_name="ImmobilienAll")
+    # merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
+
+    print("fertig...")
+
+
+if __name__ == "__main__":
+    main()
+
+# Last Run:
+
+# XGBoost Standardmodell:
+# RMSE: 137019.661546
+#
+# Grid Search Parameter Tuning:
+# Fitting 4 folds for each of 4 candidates, totalling 16 fits
+# Best parameters found:  {'colsample_bytree': 0.7, 'max_depth': 2, 'n_estimators': 50}
+# Lowest RMSE Grid Search found:  177284.4177031987
+#
+# Randomized Search Parameter Tuning:
+# Fitting 4 folds for each of 5 candidates, totalling 20 fits
+# Best parameters found:  {'n_estimators': 25, 'max_depth': 5}
+# Lowest RMSE Randomized Search found:  156688.29557870186
+# RMSE: 398490.411472
+# Best rmse as a function of l2:
+#       l2           rmse
+# 0    0.1  155939.911458
+# 1    0.3  157250.669271
+# 2    0.7  156574.890625
+# 3    1.0  156490.554688
+# 4   10.0  163362.427083
+# 5  100.0  246595.109375
+#
+# Stochastic Gradient Boosting:
+# RMSE: 148264.288115
+#
+# Random Forrest:
+# RMSE: 127882.791338
+#
+# fertig...
