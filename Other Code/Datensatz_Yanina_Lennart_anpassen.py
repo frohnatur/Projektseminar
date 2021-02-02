@@ -185,6 +185,6 @@ else:
 
 
 
-#speichern
+# als csv speichern
 ImmobilienAll.to_csv('Zusammengefügt_mit_Koordinaten.csv')
 
