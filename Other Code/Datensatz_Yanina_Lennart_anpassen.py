@@ -34,9 +34,9 @@ Immoscout24Base["baujahr"] = pd.to_numeric(Immoscout24Base["baujahr"], errors='c
 Immoscout24Base["grundstuecksflaeche"] = pd.to_numeric(Immoscout24Base["grundstuecksflaeche"], errors="ignore")
 
 Immoscout24Base["wohnflaeche"] = pd.to_numeric(Immoscout24Base['wohnflaeche'], errors='ignore')
+Immoscout24Base["terrasse_balkon"] = Immoscout24Base["balkon"].astype(str).apply(lambda row: "JA" if "Balkon" in row else "NEIN")
 
-Immoscout24Base["terrasse"] = Immoscout24Base["balkon"].astype(str).apply(lambda row: "JA" if "Terrasse" in row else "NEIN")
-Immoscout24Base["balkon"] = Immoscout24Base["balkon"].astype(str).apply(lambda row: "JA" if "Balkon" in row else "NEIN")
+
 Immoscout24Base["vermietet"] = Immoscout24Base["vermietet"].astype(str).apply(lambda row: "JA" if row == "Vermietet" else "NEIN")
 Immoscout24Base['aufzug'] = Immoscout24Base['aufzug'].astype(str)
 Immoscout24Base["aufzug"] = Immoscout24Base["aufzug"].apply(lambda row: "JA" if row == "Personenaufzug" else "NEIN")
@@ -52,6 +52,10 @@ Immoscout24Base["energie_verbrauch"] = pd.to_numeric(Immoscout24Base["energie_ve
 
 Immoscout24Base['etagen'] = Immoscout24Base['geschoss'].apply(lambda row: re.sub('\d*\svon ', '', str(row)))
 Immoscout24Base['geschoss'] = Immoscout24Base['geschoss'].apply(lambda row: re.sub('von\s\d*', '', str(row)))
+
+ImmonetBase['terrasse_balkon'] = ImmonetBase['terrasse'] + '' + ImmonetBase['balkon']
+ImmonetBase['terrasse_balkon'] = ImmonetBase['terrasse_balkon'].apply(lambda row: 'JA' if 'JA' in row else 'NEIN')
+ImmonetBase = ImmonetBase.drop(columns=['terrasse', 'balkon'])
 
 Immoscout24Base = Immoscout24Base.reindex(sorted(Immoscout24Base.columns), axis=1)
 ImmonetBase = ImmonetBase.reindex(sorted(ImmonetBase.columns), axis=1)
@@ -98,7 +102,7 @@ ImmobilienAll = ImmobilienAll.dropna(subset=['einwohner'])
 
 
 #Anpassungen
-ImmobilienAll["balkon"] = ImmobilienAll["balkon"].astype("category")
+ImmobilienAll["terrasse_balkon"] = ImmobilienAll["terrasse_balkon"].astype("category")
 ImmobilienAll["barrierefrei"] = ImmobilienAll["barrierefrei"].astype("category")
 ImmobilienAll["energietyp"] = ImmobilienAll["energietyp"].astype("category")
 ImmobilienAll["energie_effizienzklasse"] = ImmobilienAll["energie_effizienzklasse"].astype("category")
@@ -107,7 +111,6 @@ ImmobilienAll["heizung"] = ImmobilienAll["heizung"].astype("category")
 ImmobilienAll["immobilienart"] = ImmobilienAll["immobilienart"].astype("category")
 ImmobilienAll["immobilienzustand"] = ImmobilienAll["immobilienzustand"].astype("category")
 ImmobilienAll["plz"] = ImmobilienAll["plz"].astype("category")
-ImmobilienAll["terrasse"] = ImmobilienAll["terrasse"].astype("category")
 ImmobilienAll["unterkellert"] = ImmobilienAll["unterkellert"].astype("category")
 ImmobilienAll["vermietet"] = ImmobilienAll["vermietet"].astype("category")
 ImmobilienAll["aufzug"] = ImmobilienAll["aufzug"].astype("category")
@@ -182,6 +185,6 @@ else:
 
 
 
-#speichern
+# als csv speichern
 ImmobilienAll.to_csv('Zusammengefügt_mit_Koordinaten.csv')
 
