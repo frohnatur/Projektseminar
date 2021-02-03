@@ -228,9 +228,9 @@ def impute_data(preprocessed_data):
     return imputed_data
 
 
-def print_feature_importances(model, X_train):
+def print_feature_importances(model, data):
     importances = pd.Series(data=model.feature_importances_,
-                            index=X_train.columns)
+                            index=data.columns)
     importances_sorted = importances.sort_values()
     importances_sorted.plot(kind='barh', color='lightgreen')
     plt.title('Features Importances')
@@ -263,7 +263,7 @@ def ml_tests(imputed_data):
     print("RMSE: %f" % (rmse))
     print()
 
-    print_feature_importances(model=xg_reg, X_train=X_train)
+    print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Grid Search parameter Tuning
     print("Grid Search Parameter Tuning:")
@@ -314,7 +314,7 @@ def ml_tests(imputed_data):
     print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
     print()
 
-    print_feature_importances(model=xg_reg2, X_train=X_train)
+    print_feature_importances(model=xg_reg2, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Stochastic Gradient Boosting
     print("Stochastic Gradient Boosting:")
@@ -330,7 +330,7 @@ def ml_tests(imputed_data):
     print("RMSE: %f" % (rmse))
     print()
 
-    print_feature_importances(model=sgbr, X_train=X_train)
+    print_feature_importances(model=sgbr, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Random Forrest
     print("Random Forrest:")
@@ -342,7 +342,7 @@ def ml_tests(imputed_data):
     print("RMSE: %f" % (rmse))
     print()
 
-    print_feature_importances(model=rf, X_train=X_train)
+    print_feature_importances(model=rf, data=imputed_data.drop(columns=["angebotspreis"]))
 
 
 def main():
