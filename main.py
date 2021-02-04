@@ -12,12 +12,13 @@ from sklearn.model_selection import RandomizedSearchCV
 
 
 def read_data_from_immonet():
-    immonet_data = pd.read_excel(r"Files/Immobilien_Bayern.xlsx", sheet_name="Tabelle2")
+    immonet_data = pd.read_excel(r"Files/Februar_Immonet_Bayern.xlsx", sheet_name="Tabelle2")
 
     return immonet_data
 
 
 def read_data_from_immoscout():
+    # TO-DO: Auf aktuelle Datensätze anpassen
     immoscout_data_haeuser = pd.read_excel(r"Files/Archive/20201124_Immoscout24.xlsx",
                                            sheet_name="Häuser Wü und Landkreis")
     immoscout_data_wohnungen = pd.read_excel(r"Files/Archive/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")

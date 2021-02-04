@@ -11,7 +11,7 @@ if __name__ == "__main__":
     # Exceldateien der Scraper importieren
     Immoscout24Base = pd.read_excel(r"Files/20201124_Immoscout24.xlsx", sheet_name="Häuser Wü und Landkreis")
     Immoscout24Update = pd.read_excel(r"Files/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
-    ImmonetBase = pd.read_excel(r"Files/Immobilien_Bayern.xlsx", sheet_name="Tabelle2")
+    ImmonetBase = pd.read_excel(r"Files/Februar_Immonet_Bayern.xlsx", sheet_name="Tabelle2")
 
     # Immoscout24 Datensätze an Immonet Format anpassen
     Immoscout24Base.columns = Immoscout24Base.columns.str.lower()
