@@ -19,30 +19,96 @@ def read_data_from_immonet():
 
 def read_data_from_immoscout():
     # TO-DO: Auf aktuelle Datensätze anpassen
-    immoscout_data_haeuser = pd.read_excel(r"Files/Archive/20201124_Immoscout24.xlsx",
-                                           sheet_name="Häuser Wü und Landkreis")
-    immoscout_data_wohnungen = pd.read_excel(r"Files/Archive/20201129_Immoscout24_update.xlsx", sheet_name="Häuser neu")
+    immoscout_data_haeuser = pd.read_excel(r"Files/Februar_Immoscout_Häuser_Bayern.xlsx",
+                                           sheet_name="")
+    immoscout_data_wohnungen = pd.read_excel(r"Files/Februar_Immoscout_Wohnungen_Bayern.xlsx", sheet_name="Häuser neu")
 
     immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
 
     return immoscout_data
 
+def read_data_from_coordinates():
+    #Datensatz mit Koordinaten von Timo
+    Geodaten = pd.read_excel(r'Files/PLZ mit Geodaten.xlsx', sheet_name='PLZ')
+    return Geodaten
 
-def merge_data(immonet_data, immoscout_data):
+def read_data_from_inhabitants():
+    #Datensatz mit Einwohnern von Yanina
+    Einwohner = pd.read_excel(r'Files/PLZ_einwohner.xlsx', sheet_name='Tabelle2')
+    return Einwohner
+
+def add_coodinates_inhabitants_immonet(immonet_data, Geodaten, Einwohner):
+    #Koordinaten und Einwohner auf Immonet-Daten anpassen
+    immonet_data['plz'] = immonet_data['plz'].astype(str)
+    Geodaten = Geodaten.astype(str)
+    list_plz_immonet = immonet_data['plz']
+
+    dict_breitengrad_immonet = dict(zip(Geodaten['PLZ'], Geodaten['Breitengrad']))
+    list_breitengrad_immonet = [dict_breitengrad_immonet.get(key) for key in list_plz_immonet]
+
+    dict_längengrad_immonet = dict(zip(Geodaten['PLZ'], Geodaten['Längengrad']))
+    list_längengrad_immonet = [dict_längengrad_immonet.get(key) for key in list_plz_immonet]
+
+    Einwohner = Einwohner.astype(str)
+    dict_einwohner_immonet = dict(zip(Einwohner['plz'], Einwohner['einwohner']))
+    list_einwohner_immonet = [dict_einwohner_immonet.get(key) for key in list_plz_immonet]
+
+    immonet_data['breitengrad'] = list_breitengrad_immonet
+    immonet_data['laengengrad'] = list_längengrad_immonet
+    immonet_data['einwohner'] = list_einwohner_immonet
+
+    immonet_data = immonet_data.dropna(subset=['breitengrad'])
+    immonet_data = immonet_data.dropna(subset=['laengengrad'])
+    immonet_data = immonet_data.dropna(subset=['einwohner'])
+
+    immonet_data_new = immonet_data
+
+    return immonet_data_new
+
+
+def add_coordinates_inhabitants_immoscout(immoscout_data, Geodaten, Einwohner):
+    #Koordinaten und Einwohner auf Immonet - Daten anpassen
+    Geodaten = Geodaten.astype(str)
+    immoscout_data["plz"] = immoscout_data["PLZ und Ort"].astype(str).apply(lambda row: row[:5])
+    list_plz_immoscout = immoscout_data['plz']
+
+    dict_breitengrad_immoscout = dict(zip(Geodaten['PLZ'], Geodaten['Breitengrad']))
+    list_breitengrad_immoscout = [dict_breitengrad_immoscout.get(key) for key in list_plz_immoscout]
+
+    dict_längengrad_immoscout = dict(zip(Geodaten['PLZ'], Geodaten['Längengrad']))
+    list_längengrad_immoscout = [dict_längengrad_immoscout.get(key) for key in list_plz_immoscout]
+
+    Einwohner = Einwohner.astype(str)
+    dict_einwohner_immoscout = dict(zip(Einwohner['plz'], Einwohner['einwohner']))
+    list_einwohner_immoscout = [dict_einwohner_immoscout.get(key) for key in list_plz_immoscout]
+
+    immoscout_data['breitengrad'] = list_breitengrad_immoscout
+    immoscout_data['laengengrad'] = list_längengrad_immoscout
+    immoscout_data['einwohner'] = list_einwohner_immoscout
+
+    immoscout_data = immoscout_data.dropna(subset=['breitengrad'])
+    immoscout_data = immoscout_data.dropna(subset=['laengengrad'])
+    immoscout_data = immoscout_data.dropna(subset=['einwohner'])
+
+    immoscout_data_new = immoscout_data
+
+    return immoscout_data_new
+
+def merge_data(immonet_data_new, immoscout_data_new):
     # Immoscout Format an Immonet Format anpassen:
 
-    immoscout_data.columns = immoscout_data.columns.str.lower()
-    immoscout_data["plz"] = immoscout_data["plz und ort"].apply(lambda row: row[:5])
-    immoscout_data["ort"] = immoscout_data["plz und ort"].apply(lambda row: row[5:])
+    immoscout_data_new.columns = immoscout_data_new.columns.str.lower()
 
-    immoscout_data = immoscout_data.drop(columns=["plz und ort", "web-scraper-order"])
 
-    immoscout_data.rename(
+
+    immoscout_data_new = immoscout_data_new.drop(columns=["plz und ort", "web-scraper-order"])
+
+    immoscout_data_new.rename(
         columns={"anzahl badezimmer": "anzahl_badezimmer", "anzahl schlafzimmer": "anzahl_schlafzimmer",
                  "zimmer": "anzahl_zimmer", "einkaufspreis": "angebotspreis",
-                 "balkon/ terrasse": "balkon", "wohnfläche": "wohnflaeche", "etage": "geschoss",
+                 "balkon/ terrasse": "terrasse_balkon", "wohnfläche": "wohnflaeche", "etage": "geschoss",
                  "grundstück": "grundstuecksflaeche", "stufenloser zugang": "barrierefrei",
-                 "aufzug": "fahrstuhl", "objektzustand": "immobilienzustand",
+                 "objektzustand": "immobilienzustand",
                  "keller ja/nein": "unterkellert", "gäste-wc ja/nein": "gaeste_wc",
                  "energie­effizienz­klasse": "energie_effizienzklasse",
                  "wesentliche energieträger": "befeuerungsart", "end­energie­verbrauch": "energie_verbrauch",
@@ -51,47 +117,55 @@ def merge_data(immonet_data, immoscout_data):
 
     # Spalteninhalte anpassen:
     # Annahme NaN ist NEIN
-    immoscout_data["unterkellert"] = immoscout_data["unterkellert"].apply(
+
+    immonet_data_new['terrasse_balkon'] = immonet_data_new['terrasse'] + '' + immonet_data['balkon']
+    immonet_data_new['terrasse_balkon'] = immonet_data_new['terrasse_balkon'].apply(
+        lambda row: 'JA' if 'JA' in row else 'NEIN')
+    immonet_data_new = immonet_data_new.drop(columns=['terrasse', 'balkon'])
+
+    immoscout_data_new["aufzug"] = immoscout_data_new["aufzug"].astype(str).apply(
+        lambda row: "JA" if row == "Personenaufzug" else "NEIN")
+
+    immoscout_data_new["terrasse_balkon"] = immoscout_data_new["terrasse_balkon"].astype(str).apply(
+        lambda row: "JA" if "Balkon" in row else "NEIN")
+
+    immoscout_data_new["unterkellert"] = immoscout_data_new["unterkellert"].apply(
         lambda row: "JA" if row == "keller" else "NEIN")
-    immoscout_data["gaeste_wc"] = immoscout_data["gaeste_wc"].apply(
+    immoscout_data_new["gaeste_wc"] = immoscout_data_new["gaeste_wc"].apply(
         lambda row: "JA" if row == "Gäste-WC" else "NEIN")
-    immoscout_data["barrierefrei"] = immoscout_data["barrierefrei"].apply(
+    immoscout_data_new["barrierefrei"] = immoscout_data_new["barrierefrei"].apply(
         lambda row: "JA" if row == 'Stufenloser Zugang' else "NEIN")
 
-    immoscout_data["baujahr"] = pd.to_numeric(immoscout_data["baujahr"], errors='coerce')
-    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
+    immoscout_data_new["baujahr"] = pd.to_numeric(immoscout_data_new["baujahr"], errors='coerce')
+    immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].astype(str).apply(
         lambda row: re.sub('[.m²]', '', row))
-    immoscout_data["grundstuecksflaeche"] = pd.to_numeric(immoscout_data["grundstuecksflaeche"],
+    immoscout_data_new["grundstuecksflaeche"] = pd.to_numeric(immoscout_data_new["grundstuecksflaeche"],
                                                           errors="ignore")
-    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].apply(lambda row: re.sub('[m²]', '', row))
-    immoscout_data["wohnflaeche"] = pd.to_numeric(immoscout_data["wohnflaeche"].str.replace(",", "."),
+    immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].astype(str).apply(lambda row: re.sub('[m²]', '', row))
+    immoscout_data_new["wohnflaeche"] = pd.to_numeric(immoscout_data_new["wohnflaeche"].str.replace(",", "."),
                                                   errors="ignore")
-    immoscout_data["terrasse"] = immoscout_data["balkon"].astype(str).apply(
-        lambda row: "JA" if "Terrasse" in row else "NEIN")
-    immoscout_data["balkon"] = immoscout_data["balkon"].astype(str).apply(
-        lambda row: "JA" if "Balkon" in row else "NEIN")
-    immoscout_data["vermietet"] = immoscout_data["vermietet"].astype(str).apply(
+
+    immoscout_data_new["vermietet"] = immoscout_data_new["vermietet"].astype(str).apply(
         lambda row: "JA" if row == "Vermietet" else "NEIN")
 
-    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].fillna(0)
-    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].apply(
+    immoscout_data_new["anzahl_parkplatz"] = immoscout_data_new["anzahl_parkplatz"].fillna(0)
+    immoscout_data_new["anzahl_parkplatz"] = immoscout_data_new["anzahl_parkplatz"].apply(
         lambda row: re.sub('[\\D]', '', str(row)))
-    immoscout_data["anzahl_parkplatz"] = pd.to_numeric(immoscout_data["anzahl_parkplatz"])
-    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].fillna(1)
+    immoscout_data_new["anzahl_parkplatz"] = pd.to_numeric(immoscout_data_new["anzahl_parkplatz"])
+    immoscout_data_new["anzahl_parkplatz"] = immoscout_data_new["anzahl_parkplatz"].fillna(1)
 
-    immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
+    immoscout_data_new["energie_verbrauch"] = immoscout_data_new["energie_verbrauch"].apply(
         lambda row: re.sub('[^0-9,]', '', str(row)))
-    immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
+    immoscout_data_new["energie_verbrauch"] = immoscout_data_new["energie_verbrauch"].apply(
         lambda row: re.sub(',', '.', str(row)))
-    immoscout_data["energie_verbrauch"] = pd.to_numeric(immoscout_data["energie_verbrauch"])
+    immoscout_data_new["energie_verbrauch"] = pd.to_numeric(immoscout_data_new["energie_verbrauch"])
 
     # Spalten alphabetisch sortieren
-    immonet_data = immonet_data.reindex(sorted(immonet_data.columns), axis=1)
-    immoscout_data = immoscout_data.reindex(sorted(immoscout_data.columns), axis=1)
+    immonet_data = immonet_data_new.reindex(sorted(immonet_data_new.columns), axis=1)
+    immoscout_data = immoscout_data_new.reindex(sorted(immoscout_data_new.columns), axis=1)
 
-    # merged_data_innerjoin = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="inner")
-
-    merged_data = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="outer")
+    #Innerjoin reicht hier aus
+    merged_data = pd.concat([immoscout_data_new, immonet_data_new], axis=0, ignore_index=True, join="inner")
 
     return merged_data
 
@@ -108,19 +182,10 @@ def preprocess_data(merged_data):
 
     # Nicht verwendbare Spalten droppen
     merged_data = merged_data.drop(
-        columns=['anzahl_schlafzimmer', 'bezugsfrei ab', "denkmalschutzobjekt", "einbauküche", "immo_url",
-                 "energieausweis", "energie­ausweistyp", 'energie_verbrauch', 'etagen', "fahrstuhl", 'geschoss',
-                 "grundbucheintrag",
-                 "grunderwerbssteuer", 'hausgeld', "maklerprovision",
-                 "modernisierung/ sanierung", "monatsmiete", "notarkosten", "ort",
-                 "scoutid",
-                 "strasse", "web-scraper-start-url", "wohnung-href",
-                 "denkmalschutz", "nutzfläche ca", "ausstattung",
-                 "ausstattung beschreibung", "lage",
-                 "objektbeschreibung", "sonstiges", "wohnung"])
+        columns=['anzahl_schlafzimmer', 'energie_verbrauch', 'geschoss'])
 
     # Spalten-Datentypen bearbeiten
-    merged_data["balkon"] = merged_data["balkon"].astype("category")
+    merged_data["terrasse_balkon"] = merged_data["terrasse_balkon"].astype("category")
     merged_data["barrierefrei"] = merged_data["barrierefrei"].astype("category")
     merged_data["energietyp"] = merged_data["energietyp"].astype("category")
     merged_data["energie_effizienzklasse"] = merged_data["energie_effizienzklasse"].astype("category")
@@ -129,7 +194,6 @@ def preprocess_data(merged_data):
     merged_data["immobilienart"] = merged_data["immobilienart"].astype("category")
     merged_data["immobilienzustand"] = merged_data["immobilienzustand"].astype("category")
     merged_data["plz"] = merged_data["plz"].astype("category")
-    merged_data["terrasse"] = merged_data["terrasse"].astype("category")
     merged_data["unterkellert"] = merged_data["unterkellert"].astype("category")
     merged_data["vermietet"] = merged_data["vermietet"].astype("category")
     merged_data["aufzug"] = merged_data["aufzug"].astype("category")
@@ -349,7 +413,11 @@ def ml_tests(imputed_data):
 def main():
     immonet_data = read_data_from_immonet()
     immoscout_data = read_data_from_immoscout()
-    merged_data = merge_data(immonet_data, immoscout_data)
+    Geodaten = read_data_from_coordinates()
+    Einwohner = read_data_from_inhabitants()
+    add_coodinates_inhabitants_immonet(immonet_data, Geodaten, Einwohner)
+    add_coordinates_inhabitants_immoscout(immoscout_data, Geodaten, Einwohner)
+    merged_data = merge_data(immonet_data_new, immoscout_data_new)
     preprocessed_data = preprocess_data(merged_data)
     imputed_data = impute_data(preprocessed_data)
     ml_tests(imputed_data)
