@@ -20,8 +20,8 @@ def read_data_from_immonet():
 def read_data_from_immoscout():
     # TO-DO: Auf aktuelle Datensätze anpassen
     immoscout_data_haeuser = pd.read_excel(r"Files/Februar_Immoscout_Häuser_Bayern.xlsx",
-                                           sheet_name="")
-    immoscout_data_wohnungen = pd.read_excel(r"Files/Februar_Immoscout_Wohnungen_Bayern.xlsx", sheet_name="Häuser neu")
+                                           sheet_name="Tabelle3")
+    immoscout_data_wohnungen = pd.read_excel(r"Files/Februar_Immoscout_Wohnungen_Bayern.xlsx", sheet_name="Tabelle2")
 
     immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
 
