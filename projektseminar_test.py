@@ -409,45 +409,77 @@ def ml_tests(imputed_data):
     print_feature_importances(model=rf, data=imputed_data.drop(columns=["angebotspreis"]))
 
 
-def create_database_connection(path):
-    connection = None
+def setup_database(path):
+    db_connection = None
     try:
-        connection = sqlite3.connect(path)
-        print("Connection to SQLite DB successful")
+        db_connection = sqlite3.connect(path)
+        print("Connection to SQLite DB successful!")
     except Error as e:
-        print(f"The error '{e}' occurred")
+        print(f"The error '{e}' occurred!")
 
-    return connection
+    return db_connection
 
 
 def main():
-    # Read input data
-    immonet_data = read_data_from_immonet()
-    immoscout_data = read_data_from_immoscout()
-    geo_data = read_geo_data()
-    inhabitants_data = read_data_from_inhabitants()
+    # Set up database
+    print("Step 1: Set up database...")
 
-    # merge input data
+    db_connection = setup_database(r"Database/ImmoDB.db")
+    db_cursor = db_connection.cursor()
+
+    # Read input data
+    print("Step 2: Read in data...")
+
+    immonet_data = read_data_from_immonet()
+    immonet_data.to_sql(name='Immonet_data_raw', con=db_connection)
+    # Alternative für später: df.to_sql(name='Table1', con=conn, if_exists='append')
+
+    immoscout_data = read_data_from_immoscout()
+    immoscout_data.to_sql(name='Immoscout_data_raw', con=db_connection)
+
+    geo_data = read_geo_data()
+    geo_data.to_sql(name='Geo_data_raw', con=db_connection)
+
+    inhabitants_data = read_data_from_inhabitants()
+    inhabitants_data.to_sql(name='Inhabitants_data_raw', con=db_connection)
+
+    # Merge input data
+    print("Step 3: Merge data...")
+
     immonet_data_geo_inh = add_geo_inhabitants_immonet(immonet_data, geo_data, inhabitants_data)
     immoscout_data_geo_inh = add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
+
+    # Preprocessing
+    # print("Step 4: Preprocess data...")
+
     # preprocessed_data = preprocess_data(merged_data)
+
+    # Imputation
+    # print("Step 5: Impute data...")
+
     # imputed_data = impute_data(preprocessed_data)
+
+    # Machine Learning
+    # print("Step 6: Machine learning tests...")
+
     # ml_tests(imputed_data)
 
     # Testausgaben
-    immonet_data.to_excel(excel_writer="Files/Tests/ImmoscoutDataTest.xlsx", sheet_name="Immobilien")
-    immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutDataTest.xlsx", sheet_name="Immobilien")
-    geo_data.to_excel(excel_writer="Files/Tests/GeoDataTest.xlsx", sheet_name="Geodaten")
-    inhabitants_data.to_excel(excel_writer="Files/Tests/InhabitantsDataTest.xlsx", sheet_name="Einwohner")
+    # print("Optional: Create Excel files...")
 
-    immonet_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
-    immoscout_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
+    # immonet_data.to_excel(excel_writer="Files/Tests/ImmoscoutDataTest.xlsx", sheet_name="Immobilien")
+    # immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutDataTest.xlsx", sheet_name="Immobilien")
+    # geo_data.to_excel(excel_writer="Files/Tests/GeoDataTest.xlsx", sheet_name="Geodaten")
+    # inhabitants_data.to_excel(excel_writer="Files/Tests/InhabitantsDataTest.xlsx", sheet_name="Einwohner")
+    #
+    # immonet_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
+    # immoscout_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
+    #
+    # merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
 
-    merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
-
-    print("fertig...")
+    print("... done.")
 
 
 if __name__ == "__main__":
