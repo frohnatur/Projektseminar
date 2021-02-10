@@ -173,6 +173,9 @@ def merge_data(immonet_data_new, immoscout_data_new):
     # Innerjoin reicht hier aus
     merged_data = pd.concat([immoscout_data_new, immonet_data_new], axis=0, ignore_index=True, join="inner")
 
+    #Duplikate
+    merged_data = merged_data.drop_duplicates(subset=['wohnflaeche', 'grundstuecksflaeche', 'anzahl_zimmer'])
+
     return merged_data
 
 
