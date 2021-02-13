@@ -2,8 +2,9 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import re
-#import xgboost as xgb
+import xgboost as xgb
 import sqlite3
 
 from sqlite3 import Error
@@ -22,7 +23,6 @@ def read_data_from_immonet():
 
 
 def read_data_from_immoscout():
-    # TO-DO: Auf aktuelle Datensätze anpassen
     immoscout_data_haeuser = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Häuser.xlsx",
                                            sheet_name="Tabelle3")
     immoscout_data_wohnungen = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Wohnungen.xlsx", sheet_name="Tabelle2")
@@ -102,14 +102,14 @@ def add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants):
     return immoscout_data_new
 
 
-def merge_data(immonet_data_new, immoscout_data_new):
+def merge_data(immonet_data, immoscout_data):
 
     # Immoscout Format an Immonet Format anpassen:
-    immoscout_data_new.columns = immoscout_data_new.columns.str.lower()
+    immoscout_data.columns = immoscout_data.columns.str.lower()
 
-    immoscout_data_new = immoscout_data_new.drop(columns=["plz und ort", "web-scraper-order"])
+    immoscout_data = immoscout_data.drop(columns=["plz und ort", "web-scraper-order"])
 
-    immoscout_data_new.rename(
+    immoscout_data.rename(
         columns={"anzahl badezimmer": "anzahl_badezimmer", "anzahl schlafzimmer": "anzahl_schlafzimmer",
                  "zimmer": "anzahl_zimmer", "einkaufspreis": "angebotspreis",
                  "balkon/ terrasse": "terrasse_balkon", "wohnfläche": "wohnflaeche", "etage": "geschoss",
@@ -124,59 +124,124 @@ def merge_data(immonet_data_new, immoscout_data_new):
     # Spalteninhalte anpassen:
     # Annahme NaN ist NEIN
 
-    immonet_data_new['terrasse_balkon'] = immonet_data_new['terrasse'] + '' + immonet_data_new['balkon']
-    immonet_data_new['terrasse_balkon'] = immonet_data_new['terrasse_balkon'].apply(
+    immonet_data['terrasse_balkon'] = immonet_data['terrasse'] + '' + immonet_data['balkon']
+    immonet_data['terrasse_balkon'] = immonet_data['terrasse_balkon'].apply(
         lambda row: 'JA' if 'JA' in row else 'NEIN')
-    immonet_data_new = immonet_data_new.drop(columns=['terrasse', 'balkon'])
+    immonet_data = immonet_data.drop(columns=['terrasse', 'balkon'])
 
-    immoscout_data_new["aufzug"] = immoscout_data_new["aufzug"].astype(str).apply(
+    immoscout_data["aufzug"] = immoscout_data["aufzug"].astype(str).apply(
         lambda row: "JA" if row == "Personenaufzug" else "NEIN")
 
-    immoscout_data_new["terrasse_balkon"] = immoscout_data_new["terrasse_balkon"].astype(str).apply(
+    immoscout_data["terrasse_balkon"] = immoscout_data["terrasse_balkon"].astype(str).apply(
         lambda row: "JA" if "Balkon" in row else "NEIN")
 
-    immoscout_data_new["unterkellert"] = immoscout_data_new["unterkellert"].apply(
+    immoscout_data["unterkellert"] = immoscout_data["unterkellert"].apply(
         lambda row: "JA" if row == "keller" else "NEIN")
-    immoscout_data_new["gaeste_wc"] = immoscout_data_new["gaeste_wc"].apply(
+
+    immoscout_data["gaeste_wc"] = immoscout_data["gaeste_wc"].apply(
         lambda row: "JA" if row == "Gäste-WC" else "NEIN")
-    immoscout_data_new["barrierefrei"] = immoscout_data_new["barrierefrei"].apply(
+
+    immoscout_data["barrierefrei"] = immoscout_data["barrierefrei"].apply(
         lambda row: "JA" if row == 'Stufenloser Zugang' else "NEIN")
 
-    immoscout_data_new["baujahr"] = pd.to_numeric(immoscout_data_new["baujahr"], errors='coerce')
-    immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].astype(str).apply(
-        lambda row: re.sub('[.m²]', '', row))
-    immoscout_data_new["grundstuecksflaeche"] = pd.to_numeric(immoscout_data_new["grundstuecksflaeche"],
-                                                              errors="ignore")
-    immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].astype(str).apply(
-        lambda row: re.sub('[m²]', '', row))
-    immoscout_data_new["wohnflaeche"] = pd.to_numeric(immoscout_data_new["wohnflaeche"].str.replace(",", "."),
-                                                      errors="ignore")
+    immoscout_data["baujahr"] = immoscout_data["baujahr"].apply(
+        lambda row: re.sub('[\\D]', '', str(row)))
+    immoscout_data["baujahr"] = pd.to_numeric(immoscout_data["baujahr"])
 
-    immoscout_data_new["vermietet"] = immoscout_data_new["vermietet"].astype(str).apply(
+    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].astype(str).apply(
+        lambda row: re.sub('[.m²]', '', row))
+    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
+        lambda row: re.sub('nan', '', str(row)))
+    immoscout_data["grundstuecksflaeche"] = pd.to_numeric(immoscout_data["grundstuecksflaeche"].str.replace(",", "."), errors="coerce")
+
+    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].astype(str).apply(
+        lambda row: re.sub('[m²]', '', row))
+    immoscout_data["wohnflaeche"] = pd.to_numeric(immoscout_data["wohnflaeche"].str.replace(",", "."), errors="coerce")
+
+    immoscout_data["vermietet"] = immoscout_data["vermietet"].astype(str).apply(
         lambda row: "JA" if row == "Vermietet" else "NEIN")
 
-    immoscout_data_new["anzahl_parkplatz"] = immoscout_data_new["anzahl_parkplatz"].fillna(0)
-    immoscout_data_new["anzahl_parkplatz"] = immoscout_data_new["anzahl_parkplatz"].apply(
+    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].fillna(0)
+    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].apply(
         lambda row: re.sub('[\\D]', '', str(row)))
-    immoscout_data_new["anzahl_parkplatz"] = pd.to_numeric(immoscout_data_new["anzahl_parkplatz"])
-    immoscout_data_new["anzahl_parkplatz"] = immoscout_data_new["anzahl_parkplatz"].fillna(1)
+    immoscout_data["anzahl_parkplatz"] = pd.to_numeric(immoscout_data["anzahl_parkplatz"])
+    immoscout_data["anzahl_parkplatz"] = immoscout_data["anzahl_parkplatz"].fillna(1)
 
-    immoscout_data_new["energie_verbrauch"] = immoscout_data_new["energie_verbrauch"].apply(
+    immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
         lambda row: re.sub('[^0-9,]', '', str(row)))
-    immoscout_data_new["energie_verbrauch"] = immoscout_data_new["energie_verbrauch"].apply(
+    immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
         lambda row: re.sub(',', '.', str(row)))
-    immoscout_data_new["energie_verbrauch"] = pd.to_numeric(immoscout_data_new["energie_verbrauch"])
+    immoscout_data["energie_verbrauch"] = pd.to_numeric(immoscout_data["energie_verbrauch"])
 
     # Spalten alphabetisch sortieren
-    immonet_data_new = immonet_data_new.reindex(sorted(immonet_data_new.columns), axis=1)
-    immoscout_data_new = immoscout_data_new.reindex(sorted(immoscout_data_new.columns), axis=1)
+    immonet_data = immonet_data.reindex(sorted(immonet_data.columns), axis=1)
+    immoscout_data = immoscout_data.reindex(sorted(immoscout_data.columns), axis=1)
 
     # Innerjoin reicht hier aus
-    merged_data = pd.concat([immoscout_data_new, immonet_data_new], axis=0, ignore_index=True, join="inner")
-    #Duplikate droppen
+    merged_data = pd.concat([immoscout_data, immonet_data], axis=0, ignore_index=True, join="inner")
+
+    # Duplikate droppen
     merged_data = merged_data.drop_duplicates(subset=['wohnflaeche', 'grundstuecksflaeche', 'anzahl_zimmer'])
 
     return merged_data
+
+
+def eda(dataframe):
+
+    numeric_data = dataframe.select_dtypes(include=['float64','int64'])
+    numeric_data = numeric_data.drop(columns=["angebotspreis"])
+
+    categoric_data = dataframe.select_dtypes(include=['object', 'category'])
+    categoric_data = categoric_data.drop(columns=["breitengrad", "laengengrad", "plz"])
+
+    # Overview
+    print(dataframe.info())
+    print(dataframe.describe())
+
+    # Null values
+    count = round(dataframe.isnull().sum(), 2)
+    percent = round((dataframe.isnull().sum() / dataframe.shape[0]) * 100, 2)
+    null_values_eda = pd.concat([count, percent], axis=1)
+    null_values_eda.reset_index(inplace=True)
+    null_values_eda.rename(columns={0: 'Missing Values Count', 1: 'Missing Values %'}, inplace=True)
+    # data = data[data['Missing Values Count'] != 0]
+    print(null_values_eda)
+
+    # Angebotspreis Histogramm
+    sns.set(style='whitegrid', palette="deep", font_scale=1.1, rc={"figure.figsize": [8, 5]})
+    sns.histplot(dataframe['angebotspreis'], stat='count', bins='auto').set(xlabel='Angebotspreis', ylabel='Anzahl')
+    plt.ticklabel_format(style="plain")
+    plt.title("Angebotspreis Histogramm")
+    plt.savefig(r"Files/EDA/Angebotspreis_Histogram")
+    # plt.show()
+
+    # Übersicht: Boxplots + Histogramme für numerische Variablen
+    fig, axes = plt.subplots(nrows=7, ncols=2, figsize=(20, 90))
+    fig.subplots_adjust(hspace=.8, wspace=.3)
+    i = 0
+    for col in numeric_data.columns:
+        # sns.distplot erzeugt Future Warnings, da die Methode ersetzt wurde - funktioniert aber noch
+        sns.distplot(numeric_data[col], ax=axes[i][0]).set_title("Histogram of " + col)
+        sns.boxplot(numeric_data[col], ax=axes[i][1]).set_title("Boxplot of " + col)
+        i = i + 1
+    plt.savefig(r"Files/EDA/Numerics_Boxplots_Histograms")
+
+    # Countplots für kategorische Variablen
+    CatFacetGrid = sns.FacetGrid(categoric_data.melt(), col='variable', sharex=False, dropna=True, sharey=False, height=4,
+                                 col_wrap=4)
+    CatFacetGrid.set_xticklabels(rotation=90)
+    CatFacetGrid.map(sns.countplot, 'value')
+    plt.savefig(r"Files/EDA/Countplots_Categories")
+    # plt.show()
+
+    # Angebotspreis und kategorische Variablen
+    fig, ax = plt.subplots(10, 1, figsize=(20, 200))
+    for var, subplot in zip(categoric_data, ax.flatten()):
+        ax = sns.boxplot(x=var, y='angebotspreis', data=dataframe, ax=subplot)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+    plt.savefig(r"Files/EDA/Relations_Angebotspreis_Categories")
+
+    print("...eda finished!")
 
 
 def preprocess_data(merged_data):
@@ -194,6 +259,7 @@ def preprocess_data(merged_data):
         columns=['anzahl_schlafzimmer', 'energie_verbrauch', 'geschoss'])
 
     # Spalten-Datentypen bearbeiten
+    merged_data["einwohner"] = pd.to_numeric(merged_data["einwohner"])
     merged_data["terrasse_balkon"] = merged_data["terrasse_balkon"].astype("category")
     merged_data["barrierefrei"] = merged_data["barrierefrei"].astype("category")
     merged_data["energietyp"] = merged_data["energietyp"].astype("category")
@@ -206,6 +272,7 @@ def preprocess_data(merged_data):
     merged_data["unterkellert"] = merged_data["unterkellert"].astype("category")
     merged_data["vermietet"] = merged_data["vermietet"].astype("category")
     merged_data["aufzug"] = merged_data["aufzug"].astype("category")
+
 
     # Kategorische Spalten anpassen (Kategorien zusammenfassen, kleine Kategorien in Sammler "Sonstige" zusammenfassen)
     merged_data["energietyp"] = merged_data["energietyp"].apply(
@@ -323,81 +390,82 @@ def ml_tests(imputed_data):
     x = imputed_data.drop(columns=["angebotspreis"]).values
     y = imputed_data["angebotspreis"].values
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
-   # xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=20, seed=123)
-   # xg_reg.fit(x_train, y_train)
-   # preds = xg_reg.predict(x_test)
-   # rmse = np.sqrt(mean_squared_error(y_test, preds))
-   # print("RMSE: %f" % rmse)
-  #  print()
 
-   # print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
+    xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=20, seed=123)
+    xg_reg.fit(x_train, y_train)
+    preds = xg_reg.predict(x_test)
+    rmse = np.sqrt(mean_squared_error(y_test, preds))
+    print("RMSE: %f" % rmse)
+    print()
+
+    print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Grid Search parameter Tuning
-   # print("Grid Search Parameter Tuning:")
-    #gbm_param_grid = {
-    #    'colsample_bytree': [0.3, 0.7],
-    #    'n_estimators': [50],
-    #    'max_depth': [2, 5]
-    #}
-   # gbm = xgb.XGBRegressor(objective="reg:squarederror")
-    #grid_mse = GridSearchCV(estimator=gbm, param_grid=gbm_param_grid, scoring="neg_mean_squared_error", cv=4, verbose=1)
-   # grid_mse.fit(x_train, y_train)
-   # print("Best parameters found: ", grid_mse.best_params_)
-    #print("Lowest RMSE Grid Search found: ", np.sqrt(np.abs(grid_mse.best_score_)))
-    #print()
+    print("Grid Search Parameter Tuning:")
+    gbm_param_grid = {
+        'colsample_bytree': [0.3, 0.7],
+        'n_estimators': [50],
+        'max_depth': [2, 5]
+    }
+    gbm = xgb.XGBRegressor(objective="reg:squarederror")
+    grid_mse = GridSearchCV(estimator=gbm, param_grid=gbm_param_grid, scoring="neg_mean_squared_error", cv=4, verbose=1)
+    grid_mse.fit(x_train, y_train)
+    print("Best parameters found: ", grid_mse.best_params_)
+    print("Lowest RMSE Grid Search found: ", np.sqrt(np.abs(grid_mse.best_score_)))
+    print()
 
     # Randomized Search parameter tuning
-    #print("Randomized Search Parameter Tuning:")
-    #gbm_param_grid2 = {
-    #    'n_estimators': [25],
-    #    'max_depth': range(2, 12)
-   # }
+    print("Randomized Search Parameter Tuning:")
+    gbm_param_grid2 = {
+        'n_estimators': [25],
+        'max_depth': range(2, 12)
+    }
 
-   # gbm2 = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=10)
-   # randomized_mse = RandomizedSearchCV(estimator=gbm2, param_distributions=gbm_param_grid2,
-        #                                scoring="neg_mean_squared_error", n_iter=5, cv=4, verbose=1)
-  #  randomized_mse.fit(x_train, y_train)
-  #  print("Best parameters found: ", randomized_mse.best_params_)
-  #  print("Lowest RMSE Randomized Search found: ", np.sqrt(np.abs(randomized_mse.best_score_)))
+    gbm2 = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=10)
+    randomized_mse = RandomizedSearchCV(estimator=gbm2, param_distributions=gbm_param_grid2,
+                                        scoring="neg_mean_squared_error", n_iter=5, cv=4, verbose=1)
+    randomized_mse.fit(x_train, y_train)
+    print("Best parameters found: ", randomized_mse.best_params_)
+    print("Lowest RMSE Randomized Search found: ", np.sqrt(np.abs(randomized_mse.best_score_)))
 
-   # dm_train = xgb.DMatrix(data=x_train, label=y_train)
-   # dm_test = xgb.DMatrix(data=x_test, label=y_test)
-    #params = {"booster": "gblinear", "objective": "reg:squarederror"}
-    #xg_reg2 = xgb.train(dtrain=dm_train, params=params, num_boost_round=15)
-    #preds2 = xg_reg2.predict(dm_test)
-    #rmse = np.sqrt(mean_squared_error(y_test, preds2))
-    #print("RMSE: %f" % rmse)
+    dm_train = xgb.DMatrix(data=x_train, label=y_train)
+    dm_test = xgb.DMatrix(data=x_test, label=y_test)
+    params = {"booster": "gblinear", "objective": "reg:squarederror"}
+    xg_reg2 = xgb.train(dtrain=dm_train, params=params, num_boost_round=15)
+    preds2 = xg_reg2.predict(dm_test)
+    rmse = np.sqrt(mean_squared_error(y_test, preds2))
+    print("RMSE: %f" % rmse)
 
-    #reg_params = [0.1, 0.3, 0.7, 1, 10, 100]
-    #params1 = {"objective": "reg:squarederror", "max_depth": 3}
-    #rmses_l2 = []
-    #for reg in reg_params:
-     #   params1["lambda"] = reg
-      #  cv_results_rmse = xgb.cv(dtrain=dm_train, params=params1, nfold=3, num_boost_round=15, metrics="rmse",
-       #                          as_pandas=True)
-        #rmses_l2.append(cv_results_rmse["test-rmse-mean"].tail(1).values[0])
+    reg_params = [0.1, 0.3, 0.7, 1, 10, 100]
+    params1 = {"objective": "reg:squarederror", "max_depth": 3}
+    rmses_l2 = []
+    for reg in reg_params:
+        params1["lambda"] = reg
+        cv_results_rmse = xgb.cv(dtrain=dm_train, params=params1, nfold=3, num_boost_round=15, metrics="rmse",
+                                 as_pandas=True)
+        rmses_l2.append(cv_results_rmse["test-rmse-mean"].tail(1).values[0])
 
-    #print("Best rmse as a function of l2:")
-    #print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
-    #print()
+    print("Best rmse as a function of l2:")
+    print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
+    print()
 
-    #print_feature_importances(model=xg_reg2, data=imputed_data.drop(columns=["angebotspreis"]))
+    print_feature_importances(model=xg_reg2, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Stochastic Gradient Boosting
-    #print("Stochastic Gradient Boosting:")
-    #sgbr = GradientBoostingRegressor(max_depth=4,
-    #                                 subsample=0.9,
-     #                                max_features=0.75,
-      #                               n_estimators=200,
-       #                              random_state=2)
+    print("Stochastic Gradient Boosting:")
+    sgbr = GradientBoostingRegressor(max_depth=4,
+                                     subsample=0.9,
+                                     max_features=0.75,
+                                     n_estimators=200,
+                                     random_state=2)
 
-    #sgbr.fit(x_train, y_train)
-    #y_pred = sgbr.predict(x_test)
-    #rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    #print("RMSE: %f" % rmse)
-    #print()
+    sgbr.fit(x_train, y_train)
+    y_pred = sgbr.predict(x_test)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    print("RMSE: %f" % rmse)
+    print()
 
-   # print_feature_importances(model=sgbr, data=imputed_data.drop(columns=["angebotspreis"]))
+    print_feature_importances(model=sgbr, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Random Forrest
     print("Random Forrest:")
@@ -434,17 +502,18 @@ def main():
     print("Step 2: Read in data...")
 
     immonet_data = read_data_from_immonet()
-    immonet_data.to_sql(name='Immonet_data_raw', con=db_connection)
-    # Alternative für später: df.to_sql(name='Table1', con=conn, if_exists='append')
+    # immonet_data.to_sql(name='Immonet_data_raw', con=db_connection)
+    # Alternative für später:
+    # immonet_data.to_sql(name='Immonet_data_raw', con=db_connection, if_exists = 'append oder replace oder fail')
 
     immoscout_data = read_data_from_immoscout()
-    immoscout_data.to_sql(name='Immoscout_data_raw', con=db_connection)
+    # immoscout_data.to_sql(name='Immoscout_data_raw', con=db_connection)
 
     geo_data = read_geo_data()
-    geo_data.to_sql(name='Geo_data_raw', con=db_connection)
+    # geo_data.to_sql(name='Geo_data_raw', con=db_connection)
 
     inhabitants_data = read_data_from_inhabitants()
-    inhabitants_data.to_sql(name='Inhabitants_data_raw', con=db_connection)
+    # inhabitants_data.to_sql(name='Inhabitants_data_raw', con=db_connection)
 
     # Merge input data
     print("Step 3: Merge data...")
@@ -453,19 +522,26 @@ def main():
     immoscout_data_geo_inh = add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
+    merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
+
 
     # Preprocessing
-    # print("Step 4: Preprocess data...")
+    print("Step 4: Preprocess data...")
 
-    # preprocessed_data = preprocess_data(merged_data)
+    preprocessed_data = preprocess_data(merged_data)
+
+    # EDA
+    print("Step 5: EDA...")
+
+    eda(preprocessed_data)
 
     # Imputation
-    # print("Step 5: Impute data...")
+    # print("Step 6: Impute data...")
 
     # imputed_data = impute_data(preprocessed_data)
 
     # Machine Learning
-    # print("Step 6: Machine learning tests...")
+    # print("Step 7: Machine learning tests...")
 
     # ml_tests(imputed_data)
 
