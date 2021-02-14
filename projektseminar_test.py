@@ -186,21 +186,22 @@ def merge_data(immonet_data, immoscout_data):
     return merged_data
 
 
-def eda(dataframe):
+def eda(data):
 
-    numeric_data = dataframe.select_dtypes(include=['float64','int64'])
-    numeric_data = numeric_data.drop(columns=["angebotspreis"])
+    # Differenzierung von numerischen und kategorischen Variablen
+    numeric_data = data.select_dtypes(include=['float64', 'int64'])
+    # numeric_data = numeric_data.drop(columns=["angebotspreis"])
 
-    categoric_data = dataframe.select_dtypes(include=['object', 'category'])
+    categoric_data = data.select_dtypes(include=['object', 'category'])
     categoric_data = categoric_data.drop(columns=["breitengrad", "laengengrad", "plz"])
 
     # Overview
-    print(dataframe.info())
-    print(dataframe.describe())
+    print(data.info())
+    print(data.describe())
 
     # Null values
-    count = round(dataframe.isnull().sum(), 2)
-    percent = round((dataframe.isnull().sum() / dataframe.shape[0]) * 100, 2)
+    count = round(data.isnull().sum(), 2)
+    percent = round((data.isnull().sum() / data.shape[0]) * 100, 2)
     null_values_eda = pd.concat([count, percent], axis=1)
     null_values_eda.reset_index(inplace=True)
     null_values_eda.rename(columns={0: 'Missing Values Count', 1: 'Missing Values %'}, inplace=True)
@@ -209,14 +210,20 @@ def eda(dataframe):
 
     # Angebotspreis Histogramm
     sns.set(style='whitegrid', palette="deep", font_scale=1.1, rc={"figure.figsize": [8, 5]})
-    sns.histplot(dataframe['angebotspreis'], stat='count', bins='auto').set(xlabel='Angebotspreis', ylabel='Anzahl')
+    sns.histplot(data['angebotspreis'], stat='count', bins='auto').set(xlabel='Angebotspreis', ylabel='Anzahl')
     plt.ticklabel_format(style="plain")
     plt.title("Angebotspreis Histogramm")
     plt.savefig(r"Files/EDA/Angebotspreis_Histogram")
-    # plt.show()
+    plt.clf()
+
+    # Korrelation numerische Variablen
+    corrMatrix = numeric_data.corr()
+    sns.heatmap(corrMatrix, annot=True)
+    plt.savefig(r"Files/EDA/Heatmap_Correlation")
+    plt.clf()
 
     # Übersicht: Boxplots + Histogramme für numerische Variablen
-    fig, axes = plt.subplots(nrows=7, ncols=2, figsize=(20, 90))
+    fig, axes = plt.subplots(nrows=8, ncols=2, figsize=(20, 90))
     fig.subplots_adjust(hspace=.8, wspace=.3)
     i = 0
     for col in numeric_data.columns:
@@ -225,6 +232,7 @@ def eda(dataframe):
         sns.boxplot(numeric_data[col], ax=axes[i][1]).set_title("Boxplot of " + col)
         i = i + 1
     plt.savefig(r"Files/EDA/Numerics_Boxplots_Histograms")
+    plt.clf()
 
     # Countplots für kategorische Variablen
     CatFacetGrid = sns.FacetGrid(categoric_data.melt(), col='variable', sharex=False, dropna=True, sharey=False, height=4,
@@ -232,14 +240,15 @@ def eda(dataframe):
     CatFacetGrid.set_xticklabels(rotation=90)
     CatFacetGrid.map(sns.countplot, 'value')
     plt.savefig(r"Files/EDA/Countplots_Categories")
-    # plt.show()
+    plt.clf()
 
     # Angebotspreis und kategorische Variablen
     fig, ax = plt.subplots(10, 1, figsize=(20, 200))
     for var, subplot in zip(categoric_data, ax.flatten()):
-        ax = sns.boxplot(x=var, y='angebotspreis', data=dataframe, ax=subplot)
+        ax = sns.boxplot(x=var, y='angebotspreis', data=data, ax=subplot)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     plt.savefig(r"Files/EDA/Relations_Angebotspreis_Categories")
+    plt.clf()
 
     print("...eda finished!")
 
@@ -522,23 +531,24 @@ def main():
     immoscout_data_geo_inh = add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
-    merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
-
+    merged_data.to_csv("Files/Tests/merged_data.csv")
 
     # Preprocessing
     print("Step 4: Preprocess data...")
 
     preprocessed_data = preprocess_data(merged_data)
+    preprocessed_data.to_csv("Files/Tests/preprocessed_data.csv")
 
     # EDA
-    print("Step 5: EDA...")
+    # print("Step 5: EDA...")
 
-    eda(preprocessed_data)
+    # eda(preprocessed_data)
 
     # Imputation
-    # print("Step 6: Impute data...")
+    print("Step 6: Impute data...")
 
-    # imputed_data = impute_data(preprocessed_data)
+    imputed_data = impute_data(preprocessed_data)
+    imputed_data.to_csv("Files/Tests/imputed_data.csv")
 
     # Machine Learning
     # print("Step 7: Machine learning tests...")
