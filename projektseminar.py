@@ -423,12 +423,13 @@ def create_database_connection(path):
     return connection
 
 
-def main():
+def main(imputed_data=None):
     # Read input data
     immonet_data = read_data_from_immonet()
     immoscout_data = read_data_from_immoscout()
     geo_data = read_geo_data()
     inhabitants_data = read_data_from_inhabitants()
+    
 
     # merge input data
     immonet_data_geo_inh = add_geo_inhabitants_immonet(immonet_data, geo_data, inhabitants_data)
@@ -455,3 +456,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
