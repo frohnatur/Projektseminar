@@ -143,12 +143,16 @@ def merge_data(immonet_data_new, immoscout_data_new):
     immoscout_data_new["baujahr"] = pd.to_numeric(immoscout_data_new["baujahr"], errors='coerce')
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].astype(str).apply(
         lambda row: re.sub('[.m²]', '', row))
-    immoscout_data_new["grundstuecksflaeche"] = pd.to_numeric(immoscout_data_new["grundstuecksflaeche"],
-                                                              errors="ignore")
+
+    immoscout_data_new["grundstuecksflaeche"] = [x.replace('.', '') for x in immoscout_data_new["grundstuecksflaeche"]]
+    immoscout_data_new["grundstuecksflaeche"] = [x.replace(',', '.') for x in immoscout_data_new["grundstuecksflaeche"]]
+    immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new['grundstuecksflaeche'].astype(float)
+
     immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].astype(str).apply(
         lambda row: re.sub('[m²]', '', row))
-    immoscout_data_new["wohnflaeche"] = pd.to_numeric(immoscout_data_new["wohnflaeche"].str.replace(",", "."),
-                                                      errors="ignore")
+    immoscout_data_new["wohnflaeche"] = [x.replace('.', '') for x in immoscout_data_new["wohnflaeche"]]
+    immoscout_data_new["wohnflaeche"] = [x.replace(',', '.') for x in immoscout_data_new["wohnflaeche"]]
+    immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].astype(float)
 
     immoscout_data_new["vermietet"] = immoscout_data_new["vermietet"].astype(str).apply(
         lambda row: "JA" if row == "Vermietet" else "NEIN")
@@ -314,7 +318,7 @@ def ml_tests(imputed_data):
     imputed_data = imputed_data.reset_index()
 
     # Ausgabe
-    # print(imputed_data.info())
+    print(imputed_data[imputed_data['grundstuecksflaeche']=='336,16'])
     # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
 
     # XGBoost Standardmodell
@@ -435,7 +439,7 @@ def main(imputed_data=None):
     merged_data = merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
     preprocessed_data = preprocess_data(merged_data)
     imputed_data = impute_data(preprocessed_data)
-    # ml_tests(imputed_data)
+    ml_tests(imputed_data)
 
     # Testausgaben
     immonet_data.to_excel(excel_writer="Files/Tests/ImmoscoutDataTest.xlsx", sheet_name="Immobilien")
@@ -447,7 +451,7 @@ def main(imputed_data=None):
     immoscout_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
 
     merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
-    imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
+
 
     print("fertig...")
 
