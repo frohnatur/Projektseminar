@@ -504,7 +504,7 @@ def main():
     # Set up database
     print("Step 1: Set up database...")
 
-    db_connection = setup_database(r"Database/ImmoDB.db")
+    db_connection = setup_database(r"Datenbank/ImmoDB.db")
     db_cursor = db_connection.cursor()
 
     # Read input data
