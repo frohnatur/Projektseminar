@@ -558,6 +558,8 @@ def main():
 
     imputed_data = impute_data(preprocessed_data)
     imputed_data.to_csv("../../Files/Tests/imputed_data.csv")
+    imputed_data.to_excel("../../Files/Tests/imputed_data.xlsx")
+
 
     # Machine Learning
     # print("Step 7: Machine learning tests...")
