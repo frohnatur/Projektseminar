@@ -158,8 +158,6 @@ def merge_data(immonet_data_new, immoscout_data_new):
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].astype(str).apply(
         lambda row: re.sub('[.m²]', '', row))
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].apply(
-        lambda row: re.sub('nan', '1.01', str(row)))
-    immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].apply(
         lambda x: x.replace('.', ''))
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].apply(
         lambda x: x.replace(',', '.'))
@@ -167,8 +165,6 @@ def merge_data(immonet_data_new, immoscout_data_new):
 
     immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].astype(str).apply(
         lambda row: re.sub('[m²]', '', row))
-    immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].apply(
-        lambda row: re.sub('nan', '1.01', str(row)))
     immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].apply(
         lambda x: x.replace('.', ''))
     immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].apply(
