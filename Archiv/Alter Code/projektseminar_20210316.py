@@ -45,7 +45,10 @@ def read_data_from_inhabitants():
 
 def add_geo_inhabitants_immonet(immonet_data, geo_data, inhabitants):
     # Koordinaten und Einwohner auf Immonet-Daten anpassen
+    immonet_data = immonet_data.dropna(subset=['plz'])
+    immonet_data['plz'] = immonet_data['plz'].astype(int)
     immonet_data['plz'] = immonet_data['plz'].astype(str)
+
     geo_data = geo_data.astype(str)
     list_plz_immonet = immonet_data['plz']
 
@@ -127,6 +130,9 @@ def merge_data(immonet_data_new, immoscout_data_new):
     immonet_data_new['terrasse_balkon'] = immonet_data_new['terrasse_balkon'].apply(
         lambda row: 'JA' if 'JA' in row else 'NEIN')
     immonet_data_new = immonet_data_new.drop(columns=['terrasse', 'balkon'])
+
+    immonet_data_new['anzahl_badezimmer'] = immonet_data_new["anzahl_badezimmer"].apply(lambda row: '0' if row == 'E' else row)
+    immonet_data_new["anzahl_badezimmer"] = immonet_data_new["anzahl_badezimmer"].astype(int)
 
     immoscout_data_new["aufzug"] = immoscout_data_new["aufzug"].astype(str).apply(
         lambda row: "JA" if row == "Personenaufzug" else "NEIN")
