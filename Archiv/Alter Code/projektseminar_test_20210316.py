@@ -16,15 +16,15 @@ from sklearn.model_selection import RandomizedSearchCV
 
 
 def read_data_from_immonet():
-    immonet_data = pd.read_excel(r"Files/Input_Data/Immonet_Bayern.xlsx", sheet_name="Tabelle2")
+    immonet_data = pd.read_excel(r"../../Files/Input_Data/Immonet_Bayern.xlsx", sheet_name="Tabelle2")
 
     return immonet_data
 
 
 def read_data_from_immoscout():
-    immoscout_data_haeuser = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Häuser.xlsx",
+    immoscout_data_haeuser = pd.read_excel(r"../../Files/Input_Data/Immoscout_Bayern_Häuser2602bearbeitet.xlsx",
                                            sheet_name="Tabelle3")
-    immoscout_data_wohnungen = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Wohnungen.xlsx", sheet_name="Tabelle2")
+    immoscout_data_wohnungen = pd.read_excel(r"../../Files/Input_Data/wohnungen bayern 2602bearbeitet.xlsx", sheet_name="Tabelle2")
 
     immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
 
@@ -33,13 +33,13 @@ def read_data_from_immoscout():
 
 def read_geo_data():
     # Datensatz mit Koordinaten von Timo
-    geo_data = pd.read_excel(r'Files/Input_Data/PLZ_Geodaten.xlsx', sheet_name='PLZ')
+    geo_data = pd.read_excel(r'../../Files/Input_Data/PLZ_Geodaten.xlsx', sheet_name='PLZ')
     return geo_data
 
 
 def read_data_from_inhabitants():
     # Datensatz mit Einwohnern von Yanina
-    inhabitants = pd.read_excel(r'Files/Input_Data/PLZ_Einwohnerzahlen.xlsx', sheet_name='Tabelle2')
+    inhabitants = pd.read_excel(r'../../Files/Input_Data/PLZ_Einwohnerzahlen.xlsx', sheet_name='Tabelle2')
     return inhabitants
 
 
@@ -150,12 +150,22 @@ def merge_data(immonet_data, immoscout_data):
     immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].astype(str).apply(
         lambda row: re.sub('[.m²]', '', row))
     immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
-        lambda row: re.sub('nan', '', str(row)))
-    immoscout_data["grundstuecksflaeche"] = pd.to_numeric(immoscout_data["grundstuecksflaeche"].str.replace(",", "."), errors="coerce")
+        lambda row: re.sub('nan', '1.01', str(row)))
+    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
+        lambda x: x.replace('.', ''))
+    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].apply(
+        lambda x: x.replace(',', '.'))
+    immoscout_data["grundstuecksflaeche"] = immoscout_data["grundstuecksflaeche"].astype(float)
 
     immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].astype(str).apply(
         lambda row: re.sub('[m²]', '', row))
-    immoscout_data["wohnflaeche"] = pd.to_numeric(immoscout_data["wohnflaeche"].str.replace(",", "."), errors="coerce")
+    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].apply(
+        lambda row: re.sub('nan', '1.01', str(row)))
+    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].apply(
+        lambda x: x.replace('.', ''))
+    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].apply(
+        lambda x: x.replace(',', '.'))
+    immoscout_data["wohnflaeche"] = immoscout_data["wohnflaeche"].astype(float)
 
     immoscout_data["vermietet"] = immoscout_data["vermietet"].astype(str).apply(
         lambda row: "JA" if row == "Vermietet" else "NEIN")
@@ -169,7 +179,7 @@ def merge_data(immonet_data, immoscout_data):
     immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
         lambda row: re.sub('[^0-9,]', '', str(row)))
     immoscout_data["energie_verbrauch"] = immoscout_data["energie_verbrauch"].apply(
-        lambda row: re.sub(',', '../..', str(row)))
+        lambda row: re.sub(',', '.', str(row)))
     immoscout_data["energie_verbrauch"] = pd.to_numeric(immoscout_data["energie_verbrauch"])
 
     # Spalten alphabetisch sortieren
@@ -390,8 +400,8 @@ def ml_tests(imputed_data):
     imputed_data = imputed_data.reset_index()
 
     # Ausgabe
-    # print(imputed_data.info())
-    # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
+    print(imputed_data.info())
+    imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
 
     # XGBoost Standardmodell
     print("XGBoost Standardmodell:")
@@ -530,13 +540,13 @@ def main():
     immoscout_data_geo_inh = add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
-    merged_data.to_csv("Files/Tests/merged_data.csv")
+    merged_data.to_csv("../../Files/Tests/merged_data.csv")
 
     # Preprocessing
     print("Step 4: Preprocess data...")
 
     preprocessed_data = preprocess_data(merged_data)
-    preprocessed_data.to_csv("Files/Tests/preprocessed_data.csv")
+    preprocessed_data.to_csv("../../Files/Tests/preprocessed_data.csv")
 
     # EDA
     # print("Step 5: EDA...")
@@ -547,7 +557,7 @@ def main():
     print("Step 6: Impute data...")
 
     imputed_data = impute_data(preprocessed_data)
-    imputed_data.to_csv("Files/Tests/imputed_data.csv")
+    imputed_data.to_csv("../../Files/Tests/imputed_data.csv")
 
     # Machine Learning
     # print("Step 7: Machine learning tests...")
