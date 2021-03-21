@@ -16,7 +16,7 @@ from sklearn.model_selection import RandomizedSearchCV
 
 
 def read_data_from_immonet():
-    immonet_data = pd.read_excel(r"../../Files/Input_Data/Immonet_Bayern.xlsx", sheet_name="Tabelle2")
+    immonet_data = pd.read_excel(r"../../Files/Input_Data/Immonet_Bayern_neu.xlsx", sheet_name="Tabelle2")
 
     return immonet_data
 
