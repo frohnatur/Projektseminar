@@ -3,6 +3,7 @@ import requests
 from urllib.parse import urljoin
 import re
 import csv
+# import sqlite3
 
 
 # TO-DO:
@@ -147,7 +148,7 @@ class ImmoFetcher:
                 # print('zimmer_anzahl: ' + str(anzahl_zimmer))
 
                 # Anzahl der Schlafzimmer (Integer) auslesen
-                # TO-DO_ Generell überarbeiten? Welches Feld abfragen und nach welchem Schlüsselwort suchen
+                # TO-DO: Generell überarbeiten? Welches Feld abfragen und nach welchem Schlüsselwort suchen
                 anzahl_schlafzimmer = soup_immosite.find('p', id='otherDescription')
                 if anzahl_schlafzimmer is not None:
                     anzahl_schlafzimmer = soup_immosite.find('p', id='otherDescription').text.strip().split()
@@ -161,6 +162,12 @@ class ImmoFetcher:
                     # Dummy
                     anzahl_schlafzimmer = int(99)
                 # print('anzahlschlafzimmer: ' + str(anzahl_schlafzimmer))
+
+
+
+
+
+
 
                 # Anzahl der Badezimmer (Integer) auslesen
                 # TO-DO_ Generell überarbeiten? Welches Feld abfragen und nach welchem Schlüsselwort suchen

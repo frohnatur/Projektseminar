@@ -4,7 +4,7 @@ from sqlite3 import Error
 import data_modeling as dm
 # import gui
 # import machine_learning as ml
-# import webscraper as ws
+import webscraper as ws
 
 
 def setup_database(path):
