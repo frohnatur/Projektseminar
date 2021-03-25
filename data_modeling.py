@@ -358,3 +358,59 @@ def impute_data(preprocessed_data):
     imputed_data = preprocessed_data
 
     return imputed_data
+
+
+# TODO: Datenaufbereitung
+    # - Allgemein:
+    #       - Code Ordnung :)
+    #           - @Lennart Code in data_modeling.py
+    #           - @Yanina Code in machine_learning.py
+    #           - @Timo Code doppelt (2. pyFile in Files/GUI)
+    #
+    #       - Längengrad und Breitengrad raus oder Feature Transformation
+    #       - Metadaten (Einw. etc) in eigene Tabelle mit Schlüssel PLZ!
+    #           - Eikommen nach PLZ
+    #           - Einwohner
+    #           - Ortsname
+    #           - Arbeitslose?
+    #           - Google Metadaten
+    #       - Bisherige Imputing Maßnahmen evaluieren
+    #
+    # ImputedDate vor Überführung in DB
+    #
+    # - Angebotspreis:
+    #       - Fehlende Nullen - bspw. 20.000 Mehrfamilienhaus
+    #       - "Falsche" Preise - zu billige Häuser etc. - QS Methode gekoppelt an Wohnfläche oder Zimmeranzahl
+    # - Anz. Zimmer:
+    #       - Dummys? 0 & 999
+    #       - 0,5 Zimmer Einfamilienhaus, 3,4 Zimmer Apartment
+    #           - Auffällig - bei Dummys auch oft semantisch falscher Angebotspreis (< 100.000,-)
+    # - Baujahr:
+    #       - 200 und 202 eventuell 2000 und 2020?
+    #       - Imputing Methode anschauen/überarbeiten
+    # - Energietyp:
+    #       - Klare Trennung von Unbekannt und Sonstige schon im Code?
+    # - Breitengrad:
+    #       - Als Zahl formatieren
+    # - Einwohner:
+    #       - Als Zahl formatieren
+    # - Grundstücksfläche:
+    #       - NaN Werte raus
+    #       - Als Zahl formatieren
+    #       - 0-Werte imputen - Unterscheidung Wohnung oder Haus!
+    # - Immobilienart:
+    #       - Sonstige und Sonstiges zusammenfassen
+    #       - Kategorien zusammenfassen:
+    #           - Appartment (104) = Wohnung
+    #           - Reihenhäuser zusammenfassen? Yanina
+    #           - Herrenhaus (6), Schloss (8), Villa (282) zuammenfassen
+    #           - Stadthaus (51) zu Einfamilienhaus dazu
+    # - Immobilienzustand:
+    #       - Altbau (97), Modernisiert (349) zu anderen Kategorien? Diskussion
+    # - Längengrad:
+    #       - Als Zahl formatieren
+    # - PLZ:
+    #       - 35104 Lichtenfels Hessen raus
+    # - Wohnfläche:
+    #       - Punkte statt Kommas (ACHTUNG: Tausendertrennzeichen vorhanden)
+    #       -> Datentyp anpassen: Float

@@ -493,7 +493,7 @@ class ScrapedRealEstate:
 fetcher = ImmoFetcher()
 
 # CSV Erstellung
-with open('immonet_komplett.csv', 'w', newline='', encoding='utf-8') as csvfile:
+with open('Files/Input_Data/immonet_komplett.csv', 'w', newline='', encoding='utf-8') as csvfile:
     realestatewriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     realestatewriter.writerow(
         ['immo_url', 'ort', 'plz', 'angebotspreis', 'grundstuecksflaeche', 'wohnflaeche', 'anzahl_zimmer',
