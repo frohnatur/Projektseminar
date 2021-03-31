@@ -373,6 +373,28 @@ def impute_data(preprocessed_data):
     # Aufzug: Annahme, wenn nicht explizit angegeben, dann existiert kein Aufzug
     preprocessed_data.loc[preprocessed_data["aufzug"].isna(), "aufzug"] = "NEIN"
 
+    # Alle Immobilien mit Angebotspreisen <= 100000 raus
+    preprocessed_data = preprocessed_data[preprocessed_data['angebotspreis'] >= 100000.0]
+
+    # Alle Immmobilien mit Zimmeranzahl >=30 raus
+    preprocessed_data = preprocessed_data[preprocessed_data['anzahl_zimmer'] <= 30.0]
+
+    # Alle Immobilien mit Baujahr <= 1300 raus
+    preprocessed_data = preprocessed_data[preprocessed_data['baujahr'] >= 1300.0]
+    # In Int umwandeln
+    preprocessed_data['baujahr'] = preprocessed_data['baujahr'].astype(int)
+
+    # Breitengrad/Längengrad als Zahl
+    preprocessed_data['breitengrad'] = preprocessed_data['breitengrad'].astype(float)
+    preprocessed_data['laengengrad'] = preprocessed_data['laengengrad'].astype(float)
+
+    # Einwohner als Zahl
+    preprocessed_data['einwohner'] = preprocessed_data['einwohner'].astype(int)
+
+    # Kategorien Sonstige und Sontiges zusammenfassen
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].apply(
+        lambda row: 'Sonstiges' if row == "Sonstige" else row)
+
     imputed_data = preprocessed_data
 
     return imputed_data
