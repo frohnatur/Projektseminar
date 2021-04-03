@@ -395,7 +395,22 @@ def impute_data(preprocessed_data):
     preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].apply(
         lambda row: 'Sonstiges' if row == "Sonstige" else row)
 
-    imputed_data = preprocessed_data
+    # Listen der immobilienarten für haus und wohnung
+    wohnung = ['Wohnung', 'Etagenwohnung', 'Penthouse', 'Erdgeschosswohnung', 'Maisonette', 'Apartment',
+               'Dachgeschosswohnung']
+    haus = ['Bungalow', 'Doppelhaushälfte', 'Einfamilienhaus', 'Mehrfamilienhaus', 'Reiheneckhaus', 'Reihenendhaus',
+            'Reihenmittelhaus', 'Schloss', 'Sonstiges', 'Unbekannt', 'Villa', 'Zweifamilienhaus']
+
+    # datensatz aufteilen in haus und wohnung
+    preprocessed_data_wohnung = preprocessed_data[preprocessed_data['immobilienart'].isin(wohnung)]
+    preprocessed_data_haus = preprocessed_data[preprocessed_data['immobilienart'].isin(haus)]
+
+    # alle NaN bei haus dropen bei wohnung gleich null setzen
+    preprocessed_data_haus = preprocessed_data_haus.dropna()
+    preprocessed_data_wohnung['grundstuecksflaeche'] = preprocessed_data_wohnung['grundstuecksflaeche'].fillna(0)
+
+    # datensatz wieder zusammenführen
+    imputed_data = pd.concat([preprocessed_data_haus, preprocessed_data_wohnung], axis=0, ignore_index=True, join="inner")
 
     return imputed_data
 
