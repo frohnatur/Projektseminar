@@ -376,6 +376,9 @@ def impute_data(preprocessed_data):
     # Alle Immobilien mit Angebotspreisen <= 100000 raus
     preprocessed_data = preprocessed_data[preprocessed_data['angebotspreis'] >= 100000.0]
 
+    # Alle Immobilien über 30 Parkplätzen dropen
+    preprocessed_data = preprocessed_data[preprocessed_data['anzahl_parkplatz'] <= 30]
+
     # Alle Immmobilien mit Zimmeranzahl >=30 raus
     preprocessed_data = preprocessed_data[preprocessed_data['anzahl_zimmer'] <= 30.0]
 
