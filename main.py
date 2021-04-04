@@ -1,10 +1,12 @@
+import pandas as pd
+import time
 import sqlite3
 from sqlite3 import Error
 
 import data_modeling as dm
 # import gui
 # import machine_learning as ml
-import webscraper as ws
+# import webscraper as ws
 
 
 def setup_database(path):
@@ -19,6 +21,9 @@ def setup_database(path):
 
 
 def main():
+    # Datumsstring für Zwischenspeichern von Files
+    datestr = time.strftime("%Y%m%d")
+
     # Set up database
     print("Step 1: Set up database...")
 
@@ -49,13 +54,13 @@ def main():
     immoscout_data_geo_inh = dm.add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = dm.merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
-    merged_data.to_csv("Files/Tests/merged_data.csv")
+    merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv")
 
     # Preprocessing
     print("Step 4: Preprocess data...")
 
     preprocessed_data = dm.preprocess_data(merged_data)
-    preprocessed_data.to_csv("Files/Tests/preprocessed_data.csv")
+    preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv")
 
     # EDA
     # print("Step 5: EDA...")
@@ -66,7 +71,21 @@ def main():
     print("Step 6: Impute data...")
 
     imputed_data = dm.impute_data(preprocessed_data)
-    imputed_data.to_csv("Files/Tests/imputed_data.csv")
+    imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv")
+    imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
+
+    # DB Operations
+    # imputed_data.to_sql(name='Imputed_Data_RAW', con=db_connection)
+
+    # plz_einwohner = pd.read_excel("Files/Meta_Data/PLZ_Einwohnerzahlen.xlsx")
+    # plz_einwohner['plz'] = plz_einwohner['plz'].astype(str)
+    # plz_einwohner.to_sql(name='Meta_Data', con=db_connection, if_exists='replace')
+
+    # plz_ort = pd.read_excel("Files/Meta_Data/PLZ_Ort.xls")
+    # plz_ort['plz'] = plz_ort['plz'].astype(str)
+    # plz_ort.drop(columns=['osm_id'])
+    # plz_ort.to_sql(name='Meta_Data_ort', con=db_connection, if_exists='replace')
+
 
     # Machine Learning
     # print("Step 7: Machine learning tests...")
@@ -80,10 +99,10 @@ def main():
     # immoscout_data.to_excel(excel_writer="Files/Tests/ImmoscoutDataTest.xlsx", sheet_name="Immobilien")
     # geo_data.to_excel(excel_writer="Files/Tests/GeoDataTest.xlsx", sheet_name="Geodaten")
     # inhabitants_data.to_excel(excel_writer="Files/Tests/InhabitantsDataTest.xlsx", sheet_name="Einwohner")
-    #
+
     # immonet_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
     # immoscout_data_geo_inh.to_excel(excel_writer="Files/Tests/ImmoscoutDataGeoInhTest.xlsx", sheet_name="Immobilien")
-    #
+
     # merged_data.to_excel(excel_writer="Files/Tests/merged_data.xlsx", sheet_name="Immobilien")
 
     print("... done.")

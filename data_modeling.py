@@ -6,15 +6,16 @@ import re
 
 
 def read_data_from_immonet():
-    immonet_data = pd.read_excel(r"Files/Input_Data/Immonet_Bayern_neu.xlsx", sheet_name="Tabelle2")
+    # Selbst gescrapte Daten von Immonet
+    immonet_data = pd.read_excel(r"Files/Input_Data/Immonet_Bayern_31032021.xlsx", sheet_name="Tabelle2")
 
     return immonet_data
 
 
 def read_data_from_immoscout():
-    immoscout_data_haeuser = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Häuser2602bearbeitet.xlsx",
+    immoscout_data_haeuser = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Häuser_17032021.xlsx",
                                            sheet_name="Tabelle3")
-    immoscout_data_wohnungen = pd.read_excel(r"Files/Input_Data/wohnungen bayern 2602bearbeitet.xlsx", sheet_name="Tabelle2")
+    immoscout_data_wohnungen = pd.read_excel(r"Files/Input_Data/Immoscout_Bayern_Wohnungen_17032021.xlsx", sheet_name="Tabelle2")
 
     immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
 
@@ -23,13 +24,13 @@ def read_data_from_immoscout():
 
 def read_geo_data():
     # Datensatz mit Koordinaten von Timo
-    geo_data = pd.read_excel(r'Files/Input_Data/PLZ_Geodaten.xlsx', sheet_name='PLZ')
+    geo_data = pd.read_excel(r'Files/Meta_Data/PLZ_Geodaten.xlsx', sheet_name='PLZ')
     return geo_data
 
 
 def read_data_from_inhabitants():
     # Datensatz mit Einwohnern von Yanina
-    inhabitants = pd.read_excel(r'Files/Input_Data/PLZ_Einwohnerzahlen.xlsx', sheet_name='Tabelle2')
+    inhabitants = pd.read_excel(r'Files/Meta_Data/PLZ_Einwohnerzahlen.xlsx', sheet_name='Tabelle2')
     return inhabitants
 
 
@@ -147,7 +148,7 @@ def merge_data(immonet_data_new, immoscout_data_new):
         lambda row: re.sub('[\\D]', '', str(row)))
     immoscout_data_new["baujahr"] = pd.to_numeric(immoscout_data_new["baujahr"])
 
-    #Problem mit tausender Punkten lösen
+    # Problem mit tausender Punkten lösen
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].astype(str).apply(
         lambda row: re.sub('[.m²]', '', row))
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].apply(
@@ -156,7 +157,7 @@ def merge_data(immonet_data_new, immoscout_data_new):
         lambda x: x.replace(',', '.'))
     immoscout_data_new["grundstuecksflaeche"] = immoscout_data_new["grundstuecksflaeche"].astype(float)
 
-    #Problem mit tausender Punkten lösen
+    # Problem mit tausender Punkten lösen
     immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].astype(str).apply(
         lambda row: re.sub('[m²]', '', row))
     immoscout_data_new["wohnflaeche"] = immoscout_data_new["wohnflaeche"].apply(
@@ -191,6 +192,173 @@ def merge_data(immonet_data_new, immoscout_data_new):
     merged_data = merged_data.drop_duplicates(subset=['wohnflaeche', 'grundstuecksflaeche', 'anzahl_zimmer'])
 
     return merged_data
+
+
+def preprocess_data(merged_data):
+    # Tausender Stellen - Scraper Fehler -> abgeschnittene Nullen korrigieren
+    merged_data.loc[merged_data["angebotspreis"] <= 10000, "angebotspreis"] = merged_data["angebotspreis"] * 1000
+
+    # Umbenennungen
+    merged_data.rename(columns={"befeuerungsart": "energietyp"}, inplace=True)
+
+    # Zeilen ohne Angebotspreis droppen
+    merged_data = merged_data.dropna(subset=["angebotspreis"])
+
+    # Nicht verwendbare Spalten droppen
+    merged_data = merged_data.drop(
+        columns=['anzahl_schlafzimmer', 'energie_verbrauch', 'geschoss'])
+
+    # Spalten-Datentypen bearbeiten
+    merged_data["einwohner"] = pd.to_numeric(merged_data["einwohner"])
+    merged_data["terrasse_balkon"] = merged_data["terrasse_balkon"].astype("category")
+    merged_data["barrierefrei"] = merged_data["barrierefrei"].astype("category")
+    merged_data["energietyp"] = merged_data["energietyp"].astype("category")
+    merged_data["energie_effizienzklasse"] = merged_data["energie_effizienzklasse"].astype("category")
+    merged_data["gaeste_wc"] = merged_data["gaeste_wc"].astype("category")
+    merged_data["heizung"] = merged_data["heizung"].astype("category")
+    merged_data["immobilienart"] = merged_data["immobilienart"].astype("category")
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].astype("category")
+    merged_data["plz"] = merged_data["plz"].astype("category")
+    merged_data["unterkellert"] = merged_data["unterkellert"].astype("category")
+    merged_data["vermietet"] = merged_data["vermietet"].astype("category")
+    merged_data["aufzug"] = merged_data["aufzug"].astype("category")
+
+
+    # Kategorische Spalten anpassen (Kategorien zusammenfassen, kleine Kategorien in Sammler "Sonstige" zusammenfassen)
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
+        lambda row: str(row).split(",")[0])
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
+        lambda row: 'Pellets' if row == "Holzpellets" else row)
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
+        lambda row: 'Gas' if row == "Flüssiggas" else row)
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
+        lambda row: 'Fernwärme' if row == "Erdwärme" else row)
+    merged_data["energietyp"] = merged_data["energietyp"].apply(
+        lambda row: 'Sonstige' if row not in ["", np.nan, "Öl", "Gas", "Fernwärme",
+                                              "Luft-/Wasserwärme", "Holz", "Pellets", "Solar", "Strom"] else row)
+
+    merged_data["heizung"] = merged_data["heizung"].apply(
+        lambda row: 'Sonstige' if row not in ["", np.nan, "Zentralheizung", "Etagenheizung", "Ofenheizung",
+                                              "Fußbodenheizung"] else row)
+
+    # Immobilienart
+    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
+        lambda row: 'Einfamilienhaus' if row == "Einfamilienhaus (freistehend)" else row)
+    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
+        lambda row: 'Villa' if row in ["Schloss", "Herrenhaus"] else row)
+    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
+        lambda row: 'Unbekannt' if row in ["", np.nan] else row)
+    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
+        lambda row: 'Sonstige' if row not in ["Einfamilienhaus", "Wohngrundstück", "Wohnung",
+                                              "Etagenwohnung", "Mehrfamilienhaus", "Erdgeschosswohnung",
+                                              "Dachgeschosswohnung", "Zweifamilienhaus", "Doppelhaushälfte", "Villa",
+                                              "Reihenmittelhaus", "Reihenendhaus", "Bungalow",
+                                              "Maisonette", "Apartment", "Stadthaus", "Bauernhaus", "Reiheneckhaus",
+                                              "Penthouse", "Unbekannt"] else row)
+
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
+        lambda row: 'Teil- oder vollrenovierungsbedürftig' if row == "Renovierungsbedürftig" else row)
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
+        lambda row: 'Teil- oder vollsaniert' if row == "Saniert" else row)
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
+        lambda row: 'Teil- oder vollrenoviert' if row == "Renovierungsbedürftig" else row)
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
+        lambda row: 'Unbekannt' if row in ["", np.nan] else row)
+    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
+        lambda row: 'Sonstige' if row not in ["Unbekannt", "Erstbezug", "Projektiert", "Neubau",
+                                              "Teil- oder vollrenovierungsbedürftig", "Neuwertig",
+                                              "Teil- oder vollsaniert", "Teil- oder vollrenoviert", "Gepflegt",
+                                              "Altbau", "Modernisiert"] else row)
+
+    preprocessed_data = merged_data
+
+    return preprocessed_data
+
+
+def impute_data(preprocessed_data):
+    # Zufällig mit vorhandenen Werten auffüllen
+    preprocessed_data.loc[preprocessed_data["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
+    preprocessed_data["anzahl_badezimmer"] = preprocessed_data["anzahl_badezimmer"].apply(
+        lambda x: np.random.choice(range(1, 4), p=[0.65, 0.30, 0.05]) if np.isnan(x) else x)
+
+    preprocessed_data["anzahl_zimmer"] = preprocessed_data["anzahl_zimmer"].apply(
+        lambda x: np.random.choice(preprocessed_data["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
+
+    preprocessed_data["baujahr"] = preprocessed_data["baujahr"].apply(
+        lambda x: np.random.choice(preprocessed_data["baujahr"].dropna().values) if np.isnan(x) else x)
+
+    # Unbekannt für kategorische Variablen
+    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].astype("category")
+    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].cat.add_categories(["Unbekannt"])
+    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].fillna("Unbekannt")
+
+    preprocessed_data["energie_effizienzklasse"] = preprocessed_data["energie_effizienzklasse"].cat.add_categories(
+        ["Unbekannt"])
+    preprocessed_data["energie_effizienzklasse"] = preprocessed_data["energie_effizienzklasse"].fillna("Unbekannt")
+
+    preprocessed_data["heizung"] = preprocessed_data["heizung"].astype("category")
+    preprocessed_data["heizung"] = preprocessed_data["heizung"].cat.add_categories(["Unbekannt"])
+    preprocessed_data["heizung"] = preprocessed_data["heizung"].fillna("Unbekannt")
+
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].astype("category")
+    # preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].cat.add_categories(["Unbekannt"])
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].fillna("Unbekannt")
+
+    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].astype("category")
+    # preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].cat.add_categories(["Unbekannt"])
+    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].fillna("Unbekannt")
+
+    # Aufzug: Annahme, wenn nicht explizit angegeben, dann existiert kein Aufzug
+    preprocessed_data.loc[preprocessed_data["aufzug"].isna(), "aufzug"] = "NEIN"
+
+
+
+
+# Lennarts Anpassungen
+
+    # Alle Immobilien mit Angebotspreisen <= 100000 raus
+    preprocessed_data = preprocessed_data[preprocessed_data['angebotspreis'] >= 100000.0]
+
+    # Alle Immobilien über 30 Parkplätzen dropen
+    preprocessed_data = preprocessed_data[preprocessed_data['anzahl_parkplatz'] <= 30]
+
+    # Alle Immmobilien mit Zimmeranzahl >=30 raus
+    preprocessed_data = preprocessed_data[preprocessed_data['anzahl_zimmer'] <= 30.0]
+
+    # Alle Immobilien mit Baujahr <= 1300 raus
+    preprocessed_data = preprocessed_data[preprocessed_data['baujahr'] >= 1300.0]
+    # In Int umwandeln
+    preprocessed_data['baujahr'] = preprocessed_data['baujahr'].astype(int)
+
+    # Breitengrad/Längengrad als Zahl
+    preprocessed_data['breitengrad'] = preprocessed_data['breitengrad'].astype(float)
+    preprocessed_data['laengengrad'] = preprocessed_data['laengengrad'].astype(float)
+
+    # Einwohner als Zahl
+    preprocessed_data['einwohner'] = preprocessed_data['einwohner'].astype(int)
+
+    # Listen der immobilienarten für haus und wohnung
+    wohnung = ['Wohnung', 'Etagenwohnung', 'Penthouse', 'Erdgeschosswohnung', 'Maisonette', 'Apartment',
+               'Dachgeschosswohnung']
+    haus = ['Bungalow', 'Doppelhaushälfte', 'Einfamilienhaus', 'Mehrfamilienhaus', 'Reiheneckhaus', 'Reihenendhaus',
+            'Reihenmittelhaus', 'Schloss', 'Sonstige', 'Unbekannt', 'Villa', 'Zweifamilienhaus']
+
+    # datensatz aufteilen in haus und wohnung
+    preprocessed_data_wohnung = preprocessed_data[preprocessed_data['immobilienart'].isin(wohnung)]
+    preprocessed_data_haus = preprocessed_data[preprocessed_data['immobilienart'].isin(haus)]
+
+    # alle NaN bei haus dropen bei wohnung gleich 0 setzen
+    preprocessed_data_haus = preprocessed_data_haus.dropna()
+    preprocessed_data_wohnung['grundstuecksflaeche'].fillna(0)
+
+    # datensatz wieder zusammenführen
+    imputed_data = pd.concat([preprocessed_data_haus, preprocessed_data_wohnung], axis=0, ignore_index=True, join="inner")
+
+
+
+
+
+    return imputed_data
 
 
 def eda(data):
@@ -258,217 +426,3 @@ def eda(data):
     plt.clf()
 
     print("...eda finished!")
-
-
-def preprocess_data(merged_data):
-    # Tausender Stellen - Scraper Fehler -> abgeschnittene Nullen korrigieren
-    merged_data.loc[merged_data["angebotspreis"] <= 10000, "angebotspreis"] = merged_data["angebotspreis"] * 1000
-
-    # Umbenennungen
-    merged_data.rename(columns={"befeuerungsart": "energietyp"}, inplace=True)
-
-    # Zeilen ohne Angebotspreis droppen
-    merged_data = merged_data.dropna(subset=["angebotspreis"])
-
-    # Nicht verwendbare Spalten droppen
-    merged_data = merged_data.drop(
-        columns=['anzahl_schlafzimmer', 'energie_verbrauch', 'geschoss'])
-
-    # Spalten-Datentypen bearbeiten
-    merged_data["einwohner"] = pd.to_numeric(merged_data["einwohner"])
-    merged_data["terrasse_balkon"] = merged_data["terrasse_balkon"].astype("category")
-    merged_data["barrierefrei"] = merged_data["barrierefrei"].astype("category")
-    merged_data["energietyp"] = merged_data["energietyp"].astype("category")
-    merged_data["energie_effizienzklasse"] = merged_data["energie_effizienzklasse"].astype("category")
-    merged_data["gaeste_wc"] = merged_data["gaeste_wc"].astype("category")
-    merged_data["heizung"] = merged_data["heizung"].astype("category")
-    merged_data["immobilienart"] = merged_data["immobilienart"].astype("category")
-    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].astype("category")
-    merged_data["plz"] = merged_data["plz"].astype("category")
-    merged_data["unterkellert"] = merged_data["unterkellert"].astype("category")
-    merged_data["vermietet"] = merged_data["vermietet"].astype("category")
-    merged_data["aufzug"] = merged_data["aufzug"].astype("category")
-
-
-    # Kategorische Spalten anpassen (Kategorien zusammenfassen, kleine Kategorien in Sammler "Sonstige" zusammenfassen)
-    merged_data["energietyp"] = merged_data["energietyp"].apply(
-        lambda row: str(row).split(",")[0])
-    merged_data["energietyp"] = merged_data["energietyp"].apply(
-        lambda row: 'Pellets' if row == "Holzpellets" else row)
-    merged_data["energietyp"] = merged_data["energietyp"].apply(
-        lambda row: 'Gas' if row == "Flüssiggas" else row)
-    merged_data["energietyp"] = merged_data["energietyp"].apply(
-        lambda row: 'Fernwärme' if row == "Erdwärme" else row)
-    merged_data["energietyp"] = merged_data["energietyp"].apply(
-        lambda row: 'Sonstige' if row not in ["", np.nan, "Öl", "Gas", "Fernwärme",
-                                              "Luft-/Wasserwärme", "Holz", "Pellets", "Solar", "Strom"] else row)
-    merged_data["heizung"] = merged_data["heizung"].apply(
-        lambda row: 'Sonstige' if row not in ["", np.nan, "Zentralheizung", "Etagenheizung", "Ofenheizung",
-                                              "Fußbodenheizung"] else row)
-
-    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
-        lambda row: 'Einfamilienhaus' if row == "Einfamilienhaus (freistehend)" else row)
-
-    merged_data["immobilienart"] = merged_data["immobilienart"].apply(
-        lambda row: 'Sonstige' if row not in ["", np.nan, "Einfamilienhaus", "Wohngrundstück", "Wohnung",
-                                              "Etagenwohnung",
-                                              "Sonstiges", "Mehrfamilienhaus", "Erdgeschosswohnung",
-                                              "Dachgeschosswohnung",
-                                              "Zweifamilienhaus", "Doppelhaushälfte", "Villa", "Reihenmittelhaus",
-                                              "Reihenendhaus", "Bungalow",
-                                              "Maisonette", "Apartment", "Stadthaus", "Schloss", "Bauernhaus",
-                                              "Herrenhaus", "Reiheneckhaus", "Penthouse"] else row)
-
-    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
-        lambda row: 'Teil- oder vollrenovierungsbedürftig' if row == "Renovierungsbedürftig" else row)
-    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
-        lambda row: 'Teil- oder vollsaniert' if row == "Saniert" else row)
-    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
-        lambda row: 'Teil- oder vollrenoviert' if row == "Renovierungsbedürftig" else row)
-    merged_data["immobilienzustand"] = merged_data["immobilienzustand"].apply(
-        lambda row: 'Sonstige' if row not in ["", np.nan, "Unbekannt", "Erstbezug", "Projektiert", "Neubau",
-                                              "Teil- oder vollrenovierungsbedürftig", "Neuwertig",
-                                              "Teil- oder vollsaniert", "Teil- oder vollrenoviert", "Gepflegt",
-                                              "Altbau", "Modernisiert"] else row)
-
-    preprocessed_data = merged_data
-
-    return preprocessed_data
-
-
-def impute_data(preprocessed_data):
-    # Zufällig mit vorhandenen Werten auffüllen
-    preprocessed_data.loc[preprocessed_data["anzahl_badezimmer"] == 0, "anzahl_badezimmer"] = np.nan
-    preprocessed_data["anzahl_badezimmer"] = preprocessed_data["anzahl_badezimmer"].apply(
-        lambda x: np.random.choice(range(1, 4), p=[0.65, 0.30, 0.05]) if np.isnan(x) else x)
-    preprocessed_data["anzahl_zimmer"] = preprocessed_data["anzahl_zimmer"].apply(
-        lambda x: np.random.choice(preprocessed_data["anzahl_zimmer"].dropna().values) if np.isnan(x) else x)
-    preprocessed_data["baujahr"] = preprocessed_data["baujahr"].apply(
-        lambda x: np.random.choice(preprocessed_data["baujahr"].dropna().values) if np.isnan(x) else x)
-
-    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].astype("category")
-    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].cat.add_categories(
-        ["Unbekannt"])
-    preprocessed_data["energietyp"] = preprocessed_data["energietyp"].fillna("Unbekannt")
-
-    preprocessed_data["energie_effizienzklasse"] = preprocessed_data["energie_effizienzklasse"].cat.add_categories(
-        ["Unbekannt"])
-    preprocessed_data["energie_effizienzklasse"] = preprocessed_data["energie_effizienzklasse"].fillna("Unbekannt")
-
-    preprocessed_data["heizung"] = preprocessed_data["heizung"].astype("category")
-    preprocessed_data["heizung"] = preprocessed_data["heizung"].cat.add_categories(
-        ["Unbekannt"])
-    preprocessed_data["heizung"] = preprocessed_data["heizung"].fillna("Unbekannt")
-
-    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].astype("category")
-    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].cat.add_categories(
-        ["Unbekannt"])
-    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].fillna("Unbekannt")
-
-    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].astype("category")
-    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].cat.add_categories(
-        ["Unbekannt"])
-    preprocessed_data["immobilienzustand"] = preprocessed_data["immobilienzustand"].fillna("Unbekannt")
-
-    # Aufzug: Annahme, wenn nicht explizit angegeben, dann existiert kein Aufzug
-    preprocessed_data.loc[preprocessed_data["aufzug"].isna(), "aufzug"] = "NEIN"
-
-    # Alle Immobilien mit Angebotspreisen <= 100000 raus
-    preprocessed_data = preprocessed_data[preprocessed_data['angebotspreis'] >= 100000.0]
-
-    # Alle Immobilien über 30 Parkplätzen dropen
-    preprocessed_data = preprocessed_data[preprocessed_data['anzahl_parkplatz'] <= 30]
-
-    # Alle Immmobilien mit Zimmeranzahl >=30 raus
-    preprocessed_data = preprocessed_data[preprocessed_data['anzahl_zimmer'] <= 30.0]
-
-    # Alle Immobilien mit Baujahr <= 1300 raus
-    preprocessed_data = preprocessed_data[preprocessed_data['baujahr'] >= 1300.0]
-    # In Int umwandeln
-    preprocessed_data['baujahr'] = preprocessed_data['baujahr'].astype(int)
-
-    # Breitengrad/Längengrad als Zahl
-    preprocessed_data['breitengrad'] = preprocessed_data['breitengrad'].astype(float)
-    preprocessed_data['laengengrad'] = preprocessed_data['laengengrad'].astype(float)
-
-    # Einwohner als Zahl
-    preprocessed_data['einwohner'] = preprocessed_data['einwohner'].astype(int)
-
-    # Kategorien Sonstige und Sontiges zusammenfassen
-    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].apply(
-        lambda row: 'Sonstiges' if row == "Sonstige" else row)
-
-    # Listen der immobilienarten für haus und wohnung
-    wohnung = ['Wohnung', 'Etagenwohnung', 'Penthouse', 'Erdgeschosswohnung', 'Maisonette', 'Apartment',
-               'Dachgeschosswohnung']
-    haus = ['Bungalow', 'Doppelhaushälfte', 'Einfamilienhaus', 'Mehrfamilienhaus', 'Reiheneckhaus', 'Reihenendhaus',
-            'Reihenmittelhaus', 'Schloss', 'Sonstiges', 'Unbekannt', 'Villa', 'Zweifamilienhaus']
-
-    # datensatz aufteilen in haus und wohnung
-    preprocessed_data_wohnung = preprocessed_data[preprocessed_data['immobilienart'].isin(wohnung)]
-    preprocessed_data_haus = preprocessed_data[preprocessed_data['immobilienart'].isin(haus)]
-
-    # alle NaN bei haus dropen bei wohnung gleich null setzen
-    preprocessed_data_haus = preprocessed_data_haus.dropna()
-    preprocessed_data_wohnung['grundstuecksflaeche'] = preprocessed_data_wohnung['grundstuecksflaeche'].fillna(0)
-
-    # datensatz wieder zusammenführen
-    imputed_data = pd.concat([preprocessed_data_haus, preprocessed_data_wohnung], axis=0, ignore_index=True, join="inner")
-
-    return imputed_data
-
-
-# TODO: Datenaufbereitung
-    # - Allgemein:
-    #       - Code Ordnung :)
-    #           - @Lennart Code in data_modeling.py
-    #           - @Yanina Code in machine_learning.py
-    #           - @Timo Code doppelt (2. pyFile in Files/GUI)
-    #
-    #       - Längengrad und Breitengrad raus oder Feature Transformation
-    #       - Metadaten (Einw. etc) in eigene Tabelle mit Schlüssel PLZ!
-    #           - Eikommen nach PLZ
-    #           - Einwohner
-    #           - Ortsname
-    #           - Arbeitslose?
-    #           - Google Metadaten
-    #       - Bisherige Imputing Maßnahmen evaluieren
-    #
-    # ImputedDate vor Überführung in DB
-    #
-    # - Angebotspreis:
-    #       - Fehlende Nullen - bspw. 20.000 Mehrfamilienhaus
-    #       - "Falsche" Preise - zu billige Häuser etc. - QS Methode gekoppelt an Wohnfläche oder Zimmeranzahl
-    # - Anz. Zimmer:
-    #       - Dummys? 0 & 999
-    #       - 0,5 Zimmer Einfamilienhaus, 3,4 Zimmer Apartment
-    #           - Auffällig - bei Dummys auch oft semantisch falscher Angebotspreis (< 100.000,-)
-    # - Baujahr:
-    #       - 200 und 202 eventuell 2000 und 2020?
-    #       - Imputing Methode anschauen/überarbeiten
-    # - Energietyp:
-    #       - Klare Trennung von Unbekannt und Sonstige schon im Code?
-    # - Breitengrad:
-    #       - Als Zahl formatieren
-    # - Einwohner:
-    #       - Als Zahl formatieren
-    # - Grundstücksfläche:
-    #       - NaN Werte raus
-    #       - Als Zahl formatieren
-    #       - 0-Werte imputen - Unterscheidung Wohnung oder Haus!
-    # - Immobilienart:
-    #       - Sonstige und Sonstiges zusammenfassen
-    #       - Kategorien zusammenfassen:
-    #           - Appartment (104) = Wohnung
-    #           - Reihenhäuser zusammenfassen? Yanina
-    #           - Herrenhaus (6), Schloss (8), Villa (282) zuammenfassen
-    #           - Stadthaus (51) zu Einfamilienhaus dazu
-    # - Immobilienzustand:
-    #       - Altbau (97), Modernisiert (349) zu anderen Kategorien? Diskussion
-    # - Längengrad:
-    #       - Als Zahl formatieren
-    # - PLZ:
-    #       - 35104 Lichtenfels Hessen raus
-    # - Wohnfläche:
-    #       - Punkte statt Kommas (ACHTUNG: Tausendertrennzeichen vorhanden)
-    #       -> Datentyp anpassen: Float

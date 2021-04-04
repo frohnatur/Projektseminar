@@ -16,15 +16,15 @@ from sklearn.model_selection import RandomizedSearchCV
 
 
 def read_data_from_immonet():
-    immonet_data = pd.read_excel(r"../../Files/Input_Data/Immonet_Bayern_neu.xlsx", sheet_name="Tabelle2")
+    immonet_data = pd.read_excel(r"../../Files/Input_Data/Immonet_Bayern_31032021.xlsx", sheet_name="Tabelle2")
 
     return immonet_data
 
 
 def read_data_from_immoscout():
-    immoscout_data_haeuser = pd.read_excel(r"../../Files/Input_Data/Immoscout_Bayern_Häuser2602bearbeitet.xlsx",
+    immoscout_data_haeuser = pd.read_excel(r"../../Files/Input_Data/Immoscout_Bayern_Häuser_17032021.xlsx",
                                            sheet_name="Tabelle3")
-    immoscout_data_wohnungen = pd.read_excel(r"../../Files/Input_Data/wohnungen bayern 2602bearbeitet.xlsx", sheet_name="Tabelle2")
+    immoscout_data_wohnungen = pd.read_excel(r"../../Files/Input_Data/Immoscout_Bayern_Wohnungen_17032021.xlsx", sheet_name="Tabelle2")
 
     immoscout_data = pd.concat([immoscout_data_haeuser, immoscout_data_wohnungen], axis=0, ignore_index=True)
 
