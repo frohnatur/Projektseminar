@@ -54,13 +54,13 @@ def main():
     immoscout_data_geo_inh = dm.add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = dm.merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
-    merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv")
+    #merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv")
 
     # Preprocessing
     print("Step 4: Preprocess data...")
 
     preprocessed_data = dm.preprocess_data(merged_data)
-    preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv")
+    #preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv")
 
     # EDA
     # print("Step 5: EDA...")
@@ -72,7 +72,7 @@ def main():
 
     imputed_data = dm.impute_data(preprocessed_data)
     imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv")
-    imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
+    #imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
 
     # DB Operations
     # imputed_data.to_sql(name='Imputed_Data_RAW', con=db_connection)
