@@ -334,6 +334,10 @@ def impute_data(preprocessed_data):
     preprocessed_data['breitengrad'] = preprocessed_data['breitengrad'].astype(float)
     preprocessed_data['laengengrad'] = preprocessed_data['laengengrad'].astype(float)
 
+    # Kategorien Sonstige und Sontiges zusammenfassen
+    preprocessed_data["immobilienart"] = preprocessed_data["immobilienart"].apply(
+        lambda row: 'Sonstige' if row == "Sonstiges" else row)
+
     # Einwohner als Zahl
     preprocessed_data['einwohner'] = preprocessed_data['einwohner'].astype(int)
 
@@ -349,7 +353,7 @@ def impute_data(preprocessed_data):
 
     # alle NaN bei haus dropen bei wohnung gleich 0 setzen
     preprocessed_data_haus = preprocessed_data_haus.dropna()
-    preprocessed_data_wohnung['grundstuecksflaeche'].fillna(0)
+    preprocessed_data_wohnung['grundstuecksflaeche'] = preprocessed_data_wohnung['grundstuecksflaeche'].fillna(0)
 
     # datensatz wieder zusammenführen
     imputed_data = pd.concat([preprocessed_data_haus, preprocessed_data_wohnung], axis=0, ignore_index=True, join="inner")

@@ -71,7 +71,7 @@ def main():
     print("Step 6: Impute data...")
 
     imputed_data = dm.impute_data(preprocessed_data)
-    imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv")
+    imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
     #imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
 
     # DB Operations
