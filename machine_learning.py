@@ -19,6 +19,20 @@ def print_feature_importances(model, data):
     plt.title('Features Importances')
     plt.show()
 
+def outlier_treatment(datacolumn):
+  sorted(datacolumn)
+  Q1, Q3 = np.percentile(datacolumn, [25,75])
+  IQR = Q3 - Q1
+  lower_range = Q1 - (1.5 * IQR)
+  upper_range = Q3 + (1.5 * IQR)
+  return lower_range,upper_range
+
+def outlier_drop(imputed_data):
+  l,u = outlier_treatment(imputed_data.angebotspreis)
+  indexNames = imputed_data[imputed_data['angebotspreis'] > u].index
+  imputed_data.drop(indexNames, inplace=True)
+  return imputed_data
+
 
 def ml_tests(imputed_data):
     # ScikitLearn Anforderung: Nur numerische Werte - Transformation der kategorischen Spalten

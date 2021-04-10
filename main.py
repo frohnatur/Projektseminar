@@ -5,7 +5,7 @@ from sqlite3 import Error
 
 import data_modeling as dm
 # import gui
-# import machine_learning as ml
+import machine_learning as ml
 # import webscraper as ws
 
 
@@ -71,7 +71,7 @@ def main():
     print("Step 6: Impute data...")
 
     imputed_data = dm.impute_data(preprocessed_data)
-    imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
+    #imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
     #imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
 
     # DB Operations
@@ -89,6 +89,9 @@ def main():
 
     # Machine Learning
     # print("Step 7: Machine learning tests...")
+
+    # Aureisser mit Yaninas funktion bei imputed_data entfernen (Vorbereitung ML-Test)
+    imputed_data = ml.outlier_drop(imputed_data)
 
     # ml_tests(imputed_data)
 
