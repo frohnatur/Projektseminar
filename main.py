@@ -54,13 +54,13 @@ def main():
     immoscout_data_geo_inh = dm.add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = dm.merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
-    #merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv")
+    #merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv", encoding = 'utf-8-sig')
 
     # Preprocessing
     print("Step 4: Preprocess data...")
 
     preprocessed_data = dm.preprocess_data(merged_data)
-    #preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv")
+    #preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
 
     # EDA
     # print("Step 5: EDA...")
@@ -91,7 +91,7 @@ def main():
     # print("Step 7: Machine learning tests...")
 
     # Aureisser mit Yaninas funktion bei imputed_data entfernen (Vorbereitung ML-Test)
-    imputed_data = ml.outlier_drop(imputed_data)
+    # imputed_data = ml.outlier_drop(imputed_data)
 
     # ml_tests(imputed_data)
 
