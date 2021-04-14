@@ -33,7 +33,6 @@ def outlier_drop(imputed_data):
   imputed_data.drop(indexNames, inplace=True)
   return imputed_data
 
-
 def ml_tests(imputed_data):
     # ScikitLearn Anforderung: Nur numerische Werte - Transformation der kategorischen Spalten
     categorical_mask = (imputed_data.dtypes == "category")
