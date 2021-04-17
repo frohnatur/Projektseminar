@@ -9,6 +9,8 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
+from category_encoders import TargetEncoder
+from sklearn.preprocessing import MinMaxScaler
 
 
 def print_feature_importances(model, data):
@@ -18,40 +20,79 @@ def print_feature_importances(model, data):
     importances_sorted.plot(kind='barh', color='lightgreen')
     plt.title('Features Importances')
     plt.show()
-
+# Entfernen der Ausreisser
 def outlier_treatment(datacolumn):
-  sorted(datacolumn)
-  Q1, Q3 = np.percentile(datacolumn, [25,75])
-  IQR = Q3 - Q1
-  lower_range = Q1 - (1.5 * IQR)
-  upper_range = Q3 + (1.5 * IQR)
-  return lower_range,upper_range
+    sorted(datacolumn)
+    Q1, Q3 = np.percentile(datacolumn, [25, 75])
+    IQR = Q3 - Q1
+    lower_range = Q1 - (1.5 * IQR)
+    upper_range = Q3 + (1.5 * IQR)
+    return lower_range, upper_range
 
 def outlier_drop(imputed_data):
-  l,u = outlier_treatment(imputed_data.angebotspreis)
-  indexNames = imputed_data[imputed_data['angebotspreis'] > u].index
-  imputed_data.drop(indexNames, inplace=True)
-  return imputed_data
+    l,u = outlier_treatment(imputed_data.angebotspreis)
+    indexNames = imputed_data[imputed_data['angebotspreis'] > u].index
+    imputed_data.drop(indexNames, inplace=True)
+    return imputed_data
 
-def ml_tests(imputed_data):
-    # ScikitLearn Anforderung: Nur numerische Werte - Transformation der kategorischen Spalten
-    categorical_mask = (imputed_data.dtypes == "category")
-    categorical_columns = imputed_data.columns[categorical_mask].tolist()
-    category_enc = pd.get_dummies(imputed_data[categorical_columns])
-    imputed_data = pd.concat([imputed_data, category_enc], axis=1)
-    imputed_data = imputed_data.drop(columns=categorical_columns)
+# Alle JA/NEIN Variablen in 1/0
+def boolean(imputed_data):
+    imputed_data = imputed_data.assign(aufzug=(imputed_data['aufzug']=='JA').astype(int))
+    imputed_data = imputed_data.assign(barrierefrei=(imputed_data['barrierefrei']=='JA').astype(int))
+    imputed_data = imputed_data.assign(gaeste_wc=(imputed_data['gaeste_wc']=='JA').astype(int))
+    imputed_data = imputed_data.assign(terrasse_balkon=(imputed_data['terrasse_balkon']=='JA').astype(int))
+    imputed_data = imputed_data.assign(unterkellert=(imputed_data['unterkellert']=='JA').astype(int))
+    imputed_data = imputed_data.assign(vermietet=(imputed_data['vermietet']=='JA').astype(int))
+    imputed_data['plz'] = imputed_data['plz'].astype(int)
+    return imputed_data
 
-    imputed_data = imputed_data.reset_index()
+# train_test_split
+def tr_te_spl(imputed_data):
+    x = imputed_data.drop(columns='angebotspreis')
+    y = imputed_data['angebotspreis']
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state = 0)
+    return x_test, x_train, y_test, y_train
 
-    # Ausgabe
-    # print(imputed_data.info())
-    # imputed_data.to_excel(excel_writer="Files/Tests/imputed_data.xlsx", sheet_name="Immobilien")
+# Sample mit nur nummerischen Daten erzeugen
+def numeric (x_train, x_test):
+    x_train_num = x_train.drop(columns=['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand'])
+    x_val_num = x_test.drop(columns=['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand'])
+    return x_train_num, x_val_num
+
+# Normalisierung der nummerischen Daten
+def normalisation(x_train_num, x_val_num):
+    scaler = MinMaxScaler()
+
+    x_train_num = pd.DataFrame(scaler.fit_transform(x_train_num),
+                               columns=x_train_num.columns, index=x_train_num.index)
+    x_val_num = pd.DataFrame(scaler.transform(x_val_num),
+                             columns=x_train_num.columns, index=x_val_num.index)
+    return x_train_num, x_val_num
+
+#Sample mit nur kategorischen Variablen erzeugen (Mehr als Zwei Kategorien)
+def category(x_train, x_test):
+    x_train_cat = x_train[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand']]
+    x_val_cat = x_test[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand']]
+    return x_train_cat, x_val_cat
+
+# Kategorische Variablen Target Encoden
+def target_encoding(x_train_cat, x_val_cat, y_train):
+    target_encoder = TargetEncoder()
+
+    x_train_target = target_encoder.fit_transform(x_train_cat, y_train)
+    x_val_target = target_encoder.transform(x_val_cat)
+    return x_train_target, x_val_target
+
+# Zusammenführung kategorischer und numerischer Varibalen + Speicherung unter Standart Variablennamen
+def joint(x_train_num, x_train_target, x_val_num, x_val_target):
+    x_train = x_train_num.join(x_train_target.add_suffix("_targetenc"))
+    x_test = x_val_num.join(x_val_target.add_suffix("_targetenc"))
+    return x_train, x_test
+
+
+def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
 
     # XGBoost Standardmodell
-    print("XGBoost Standardmodell:")
-    x = imputed_data.drop(columns=["angebotspreis"]).values
-    y = imputed_data["angebotspreis"].values
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
 
     xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=20, seed=123)
     xg_reg.fit(x_train, y_train)

@@ -88,12 +88,34 @@ def main():
 
 
     # Machine Learning
-    # print("Step 7: Machine learning tests...")
+    print("Step 7: Machine learning tests...")
 
     # Aureisser mit Yaninas funktion bei imputed_data entfernen (Vorbereitung ML-Test)
-    # imputed_data = ml.outlier_drop(imputed_data)
+    imputed_data = ml.outlier_drop(imputed_data)
 
-    # ml_tests(imputed_data)
+    # Alle Kategorien mit JA/NEIN in 1/0 umwandeln
+    imputed_data = ml.boolean(imputed_data)
+
+    # train_test_split
+    x_test, x_train, y_test, y_train = ml.tr_te_spl(imputed_data)
+
+    # Sample nur mit numerischen Variablen erzeugen
+    x_train_num, x_val_num = ml.numeric(x_train, x_test)
+
+    # Normalisierung der numerischen Daten (nur falls normalisiert werden soll!)
+    x_train_num, x_val_num = ml.normalisation(x_train_num, x_val_num)
+
+    # Sample mit nur kategorischen Variablen erzeugen (Mehr als zwei Kategorien)
+    x_train_cat, x_val_cat = ml.category(x_train, x_test)
+
+    # Target Encoding der kategorischen Variablen
+    x_train_target, x_val_target = ml.target_encoding(x_train_cat, x_val_cat, y_train)
+
+    # Zusammenführen kategorischer und numerischer Variablen + Speicherung unter Standardnamen
+    x_train, x_test = ml.joint(x_train_num, x_train_target, x_val_num, x_val_target)
+
+    # Durchführung der ML-Test
+    ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
 
     # Testausgaben
     # print("Optional: Create Excel files...")
