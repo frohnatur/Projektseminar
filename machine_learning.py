@@ -124,7 +124,7 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     print("RMSE: %f" % rmse)
     print()
 
-    print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
+    #print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Grid Search parameter Tuning
     print("Grid Search Parameter Tuning:")
@@ -175,7 +175,7 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     print(pd.DataFrame(list(zip(reg_params, rmses_l2)), columns=["l2", "rmse"]))
     print()
 
-    print_feature_importances(model=xg_reg2, data=imputed_data.drop(columns=["angebotspreis"]))
+    #print_feature_importances(model=xg_reg2, data=imputed_data.drop(columns=["angebotspreis"]))
 
     # Stochastic Gradient Boosting
     print("Stochastic Gradient Boosting:")
