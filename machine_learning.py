@@ -11,7 +11,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 from category_encoders import TargetEncoder
 from sklearn.preprocessing import MinMaxScaler
-
+from sklearn.preprocessing import StandardScaler
 
 def print_feature_importances(model, data):
     importances = pd.Series(data=model.feature_importances_,
@@ -23,43 +23,56 @@ def print_feature_importances(model, data):
 # Entfernen der Ausreisser
 def outlier_treatment(datacolumn):
     sorted(datacolumn)
-    Q1, Q3 = np.percentile(datacolumn, [25, 75])
-    IQR = Q3 - Q1
-    lower_range = Q1 - (1.5 * IQR)
-    upper_range = Q3 + (1.5 * IQR)
+    q1, q3 = np.percentile(datacolumn, [25, 75])
+    iqr = q3 - q1
+    lower_range = q1 - (1.5 * iqr)
+    upper_range = q3 + (1.5 * iqr)
     return lower_range, upper_range
 
 def outlier_drop(imputed_data):
-    l,u = outlier_treatment(imputed_data.angebotspreis)
-    indexNames = imputed_data[imputed_data['angebotspreis'] > u].index
-    imputed_data.drop(indexNames, inplace=True)
+    l, u = outlier_treatment(imputed_data.angebotspreis)
+    indexnames = imputed_data[imputed_data['angebotspreis'] > u].index
+    imputed_data.drop(indexnames, inplace=True)
     return imputed_data
 
 # Alle JA/NEIN Variablen in 1/0
 def boolean(imputed_data):
-    imputed_data = imputed_data.assign(aufzug=(imputed_data['aufzug']=='JA').astype(int))
-    imputed_data = imputed_data.assign(barrierefrei=(imputed_data['barrierefrei']=='JA').astype(int))
-    imputed_data = imputed_data.assign(gaeste_wc=(imputed_data['gaeste_wc']=='JA').astype(int))
-    imputed_data = imputed_data.assign(terrasse_balkon=(imputed_data['terrasse_balkon']=='JA').astype(int))
-    imputed_data = imputed_data.assign(unterkellert=(imputed_data['unterkellert']=='JA').astype(int))
-    imputed_data = imputed_data.assign(vermietet=(imputed_data['vermietet']=='JA').astype(int))
+    imputed_data = imputed_data.assign(aufzug=(imputed_data['aufzug'] == 'JA').astype(int))
+    imputed_data = imputed_data.assign(barrierefrei=(imputed_data['barrierefrei'] == 'JA').astype(int))
+    imputed_data = imputed_data.assign(gaeste_wc=(imputed_data['gaeste_wc'] == 'JA').astype(int))
+    imputed_data = imputed_data.assign(terrasse_balkon=(imputed_data['terrasse_balkon'] == 'JA').astype(int))
+    imputed_data = imputed_data.assign(unterkellert=(imputed_data['unterkellert'] == 'JA').astype(int))
+    imputed_data = imputed_data.assign(vermietet=(imputed_data['vermietet'] == 'JA').astype(int))
     imputed_data['plz'] = imputed_data['plz'].astype(int)
     return imputed_data
 
-# train_test_split
+def variables(imputed_data):
+    for col in ['wohnflaeche', 'anzahl_zimmer']:
+        val = imputed_data[col].mean()
+        imputed_data[col] = imputed_data[col].replace(0.0, val)
+    imputed_data['zimmergröße'] = (imputed_data['wohnflaeche'] / imputed_data['anzahl_zimmer']).round(2)
+
+    mean_plz = imputed_data.groupby('plz')['angebotspreis'].mean().round(2)
+    imputed_data['plz'] = imputed_data['plz'].map(mean_plz)
+    return imputed_data
+
+
+# Train Test Split durchführen
 def tr_te_spl(imputed_data):
     x = imputed_data.drop(columns='angebotspreis')
     y = imputed_data['angebotspreis']
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state = 0)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
     return x_test, x_train, y_test, y_train
 
 # Sample mit nur nummerischen Daten erzeugen
-def numeric (x_train, x_test):
-    x_train_num = x_train.drop(columns=['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand'])
-    x_val_num = x_test.drop(columns=['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand'])
+def numeric(x_train, x_test):
+    x_train_num = x_train.drop(columns=['energietyp', 'energie_effizienzklasse',
+                                        'heizung', 'immobilienart', 'immobilienzustand'])
+    x_val_num = x_test.drop(columns=['energietyp', 'energie_effizienzklasse',
+                                     'heizung', 'immobilienart', 'immobilienzustand'])
     return x_train_num, x_val_num
 
-# Normalisierung der nummerischen Daten
+# Normalisierung der numerischen Daten (Als Alternative zur Standardisierung)
 def normalisation(x_train_num, x_val_num):
     scaler = MinMaxScaler()
 
@@ -69,7 +82,17 @@ def normalisation(x_train_num, x_val_num):
                              columns=x_train_num.columns, index=x_val_num.index)
     return x_train_num, x_val_num
 
-#Sample mit nur kategorischen Variablen erzeugen (Mehr als Zwei Kategorien)
+# Standardisierung der numerischen Daten (Als alternative zur Normalisierung)
+def standardization(x_train_num, x_val_num):
+    scaler = StandardScaler()
+
+    x_train_num = pd.DataFrame(scaler.fit_transform(x_train_num),
+                               columns=x_train_num.columns, index=x_train_num.index)
+    x_val_num = pd.DataFrame(scaler.transform(x_val_num),
+                             columns=x_train_num.columns, index=x_val_num.index)
+    return x_train_num, x_val_num
+
+# Sample mit nur kategorischen Variablen erzeugen (Mehr als Zwei Kategorien)
 def category(x_train, x_test):
     x_train_cat = x_train[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand']]
     x_val_cat = x_test[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand']]

@@ -1,4 +1,3 @@
-import pandas as pd
 import time
 import sqlite3
 from sqlite3 import Error
@@ -54,13 +53,13 @@ def main():
     immoscout_data_geo_inh = dm.add_geo_inhabitants_immoscout(immoscout_data, geo_data, inhabitants_data)
 
     merged_data = dm.merge_data(immonet_data_geo_inh, immoscout_data_geo_inh)
-    #merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv", encoding = 'utf-8-sig')
+    # merged_data.to_csv("Files/Tests/merged_data_" + datestr + ".csv", encoding = 'utf-8-sig')
 
     # Preprocessing
     print("Step 4: Preprocess data...")
 
     preprocessed_data = dm.preprocess_data(merged_data)
-    #preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
+    # preprocessed_data.to_csv("Files/Tests/preprocessed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
 
     # EDA
     # print("Step 5: EDA...")
@@ -71,8 +70,8 @@ def main():
     print("Step 6: Impute data...")
 
     imputed_data = dm.impute_data(preprocessed_data)
-    #imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
-    #imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
+    # imputed_data.to_csv("Files/Tests/imputed_data_" + datestr + ".csv", encoding= 'utf-8-sig')
+    # imputed_data.to_excel("Files/Tests/imputed_data_" + datestr + ".xlsx")
 
     # DB Operations
     # imputed_data.to_sql(name='Imputed_Data_RAW', con=db_connection)
@@ -96,14 +95,20 @@ def main():
     # Alle Kategorien mit JA/NEIN in 1/0 umwandeln
     imputed_data = ml.boolean(imputed_data)
 
+    # PLZ als durchschnittlicher Angebotspreis pro plz und zimmergröße als variable
+    imputed_data = ml.variables(imputed_data)
+
     # train_test_split
     x_test, x_train, y_test, y_train = ml.tr_te_spl(imputed_data)
 
     # Sample nur mit numerischen Variablen erzeugen
     x_train_num, x_val_num = ml.numeric(x_train, x_test)
 
-    # Normalisierung der numerischen Daten (nur falls normalisiert werden soll!)
-    x_train_num, x_val_num = ml.normalisation(x_train_num, x_val_num)
+    # Normalisierung der numerischen Daten (Wichtig Standardisierung auskommentieren)
+    # x_train_num, x_val_num = ml.normalisation(x_train_num, x_val_num)
+
+    # Standardisierung der numerischen Daten (Wichtig Normalisierung auskommentieren)
+    x_train_num, x_val_num = ml.standardization(x_train_num, x_val_num)
 
     # Sample mit nur kategorischen Variablen erzeugen (Mehr als zwei Kategorien)
     x_train_cat, x_val_cat = ml.category(x_train, x_test)
