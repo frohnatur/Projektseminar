@@ -98,7 +98,7 @@ def main():
 
     # PLZ als durchschnittlicher Angebotspreis pro plz und zimmergröße als variable
     imputed_data = ml.variables(imputed_data)
-
+    imputed_data.drop(columns=["plz"], inplace=True)
     # train_test_split
     x_test, x_train, y_test, y_train = ml.tr_te_spl(imputed_data)
 
