@@ -60,7 +60,7 @@ def user_input_features():
         with col1:
             baujahr = st.number_input('Baujahr', max_value=2023, value=2007)
         with col2:
-            PLZ = st.number_input('Wie lautet deine PLZ?', min_value=63739, max_value=97909, value=97070)
+            plz = st.number_input('Wie lautet deine PLZ?', min_value=63739, max_value=97909, value=97070)
         
         #Eingabefeld 2 in Expander mit zwei Spalten (Anzahl Zimmer, Anzahl Parkplatz, Immoart, Anzahl Badezimmer,...)
         weitereDetails = st.beta_expander('weitere Details')
@@ -153,7 +153,8 @@ def user_input_features():
         
         
         #Zuordnung der Eingabe-Features
-        data = {'immobilienart': immobilienart,
+        data = {'plz': plz,
+                'immobilienart': immobilienart,
                 'immobilienzustand': immobilienzustand,
                 'barrierefrei': barrierefrei,
                 'terrasse_balkon': terrasse_balkon,
