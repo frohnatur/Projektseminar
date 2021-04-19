@@ -43,6 +43,8 @@ def boolean(imputed_data):
     imputed_data = imputed_data.assign(terrasse_balkon=(imputed_data['terrasse_balkon'] == 'JA').astype(int))
     imputed_data = imputed_data.assign(unterkellert=(imputed_data['unterkellert'] == 'JA').astype(int))
     imputed_data = imputed_data.assign(vermietet=(imputed_data['vermietet'] == 'JA').astype(int))
+    imputed_data = imputed_data.assign(supermarkt_im_plz_gebiet=(imputed_data['Supermarkt im PLZ Gebiet'] == 'JA').astype(int))
+    imputed_data.drop(columns=['Supermarkt im PLZ Gebiet'], inplace=True)
     imputed_data['plz'] = imputed_data['plz'].astype(int)
     return imputed_data
 
@@ -67,9 +69,11 @@ def tr_te_spl(imputed_data):
 # Sample mit nur nummerischen Daten erzeugen
 def numeric(x_train, x_test):
     x_train_num = x_train.drop(columns=['energietyp', 'energie_effizienzklasse',
-                                        'heizung', 'immobilienart', 'immobilienzustand'])
+                                        'heizung', 'immobilienart', 'immobilienzustand', 'Grad der Verstädterung',
+                                        'sozioökonmische Lage'])
     x_val_num = x_test.drop(columns=['energietyp', 'energie_effizienzklasse',
-                                     'heizung', 'immobilienart', 'immobilienzustand'])
+                                     'heizung', 'immobilienart', 'immobilienzustand', 'Grad der Verstädterung',
+                                     'sozioökonmische Lage'])
     return x_train_num, x_val_num
 
 # Normalisierung der numerischen Daten (Als Alternative zur Standardisierung)
@@ -94,8 +98,10 @@ def standardization(x_train_num, x_val_num):
 
 # Sample mit nur kategorischen Variablen erzeugen (Mehr als Zwei Kategorien)
 def category(x_train, x_test):
-    x_train_cat = x_train[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand']]
-    x_val_cat = x_test[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand']]
+    x_train_cat = x_train[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand',
+                           'Grad der Verstädterung', 'sozioökonmische Lage']]
+    x_val_cat = x_test[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand',
+                        'Grad der Verstädterung', 'sozioökonmische Lage']]
     return x_train_cat, x_val_cat
 
 # Kategorische Variablen Target Encoden
@@ -117,7 +123,7 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
 
     # XGBoost Standardmodell
 
-    xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=20, seed=123)
+    xg_reg = xgb.XGBRegressor(objective="reg:squarederror", n_estimators=50, seed=123)
     xg_reg.fit(x_train, y_train)
     preds = xg_reg.predict(x_test)
     rmse = np.sqrt(mean_squared_error(y_test, preds))
@@ -130,8 +136,8 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     print("Grid Search Parameter Tuning:")
     gbm_param_grid = {
         'colsample_bytree': [0.3, 0.7],
-        'n_estimators': [50],
-        'max_depth': [2, 5]
+        'n_estimators': [25, 50, 80, 100],
+        'max_depth': [2, 5, 7]
     }
     gbm = xgb.XGBRegressor(objective="reg:squarederror")
     grid_mse = GridSearchCV(estimator=gbm, param_grid=gbm_param_grid, scoring="neg_mean_squared_error", cv=4, verbose=1)
@@ -181,7 +187,7 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     print("Stochastic Gradient Boosting:")
     sgbr = GradientBoostingRegressor(max_depth=4,
                                      subsample=0.9,
-                                     max_features=0.75,
+                                    max_features=0.75,
                                      n_estimators=200,
                                      random_state=2)
 

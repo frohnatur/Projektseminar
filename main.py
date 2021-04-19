@@ -1,7 +1,8 @@
 import time
 import sqlite3
 from sqlite3 import Error
-
+import numpy as np
+import pandas as pd
 import data_modeling as dm
 # import gui
 import machine_learning as ml
@@ -88,7 +89,7 @@ def main():
 
     # Machine Learning
     print("Step 7: Machine learning tests...")
-
+    imputed_data = pd.read_sql_query('SELECT * FROM ML_Trainingsdaten', db_connection, index_col='index')
     # Aureisser mit Yaninas funktion bei imputed_data entfernen (Vorbereitung ML-Test)
     imputed_data = ml.outlier_drop(imputed_data)
 
@@ -118,6 +119,16 @@ def main():
 
     # Zusammenführen kategorischer und numerischer Variablen + Speicherung unter Standardnamen
     x_train, x_test = ml.joint(x_train_num, x_train_target, x_val_num, x_val_target)
+
+    # Anpassung an Anforderung von rf und sgbr -> float64 in float32 konvertieren
+    cols_train = x_train.select_dtypes(include=[np.float64]).columns
+    x_train[cols_train] = x_train[cols_train].astype(np.float32)
+    cols_test = x_test.select_dtypes(include=[np.float64]).columns
+    x_test[cols_test] = x_test[cols_test].astype(np.float32)
+
+    # Grundstücksfläche von wohnungen mit 0 auffüllen
+    x_train.fillna(0, inplace=True)
+    x_test.fillna(0, inplace=True)
 
     # Durchführung der ML-Test
     ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
