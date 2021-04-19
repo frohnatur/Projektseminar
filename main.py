@@ -131,6 +131,10 @@ def main():
     x_train.fillna(0, inplace=True)
     x_test.fillna(0, inplace=True)
 
+    #Spalten sortieren
+    x_train = x_train.reindex(sorted(x_train.columns), axis=1)
+    x_test = x_test.reindex(sorted(x_test.columns), axis=1)
+
     # Durchführung der ML-Test
     ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
 
