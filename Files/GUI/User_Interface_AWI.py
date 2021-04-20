@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import pickle
 import shap
-
+import main
 from pandas_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 from sklearn.ensemble import RandomForestRegressor
@@ -150,8 +150,23 @@ def user_input_features():
                 'H',                
                 'Unbekannt'))
             einwohner = st.slider('Einwohner', 0, 10000, 5300)
-        
-        
+
+        immobilienart_string = 'SELECT immobilienart_targetenc FROM Encoding_immobilienart WHERE immobilienart=\'' + immobilienart + '\''
+        immobilienart = pd.read_sql_query(immobilienart_string, con=db_connection)
+
+        heizung_string = 'SELECT heizung_targetenc FROM Encoding_heizung WHERE heizung=\'' + heizung + '\''
+        heizung = pd.read_sql_query(heizung_string, con=db_connection)
+
+        immobilienzustand_string = 'SELECT immobilienzustand_targetenc FROM Encoding_immobilienzustand WHERE immobilienzustand=\'' + immobilienzustand + '\''
+        immobilienzustand = pd.read_sql_query(immobilienzustand_string, con=db_connection)
+
+        energietyp_string = 'SELECT energietyp_targetenc FROM Encoding_energietyp WHERE energietyp=\'' + energietyp + '\''
+        energietyp = pd.read_sql_query(energietyp_string, con=db_connection)
+
+        energie_effizienzklasse_string = 'SELECT energie_effizienzklasse_targetenc FROM Encoding_energie_effizienzklasse WHERE energie_effizienzklasse=\'' + energie_effizienzklasse + '\''
+        energie_effizienzklasse = pd.read_sql_query(energie_effizienzklasse_string, con=db_connection)
+
+
         #Zuordnung der Eingabe-Features
         data = {'plz': plz,
                 'immobilienart': immobilienart,
@@ -173,6 +188,7 @@ def user_input_features():
                 'grundstuecksflaeche': grundstuecksflaeche,
                 'wohnflaeche': wohnflaeche}
         features = pd.DataFrame(data, index=[0])
+        pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=plz', con=db_connection, index_col="index")
         return features
 input_df = user_input_features()
 

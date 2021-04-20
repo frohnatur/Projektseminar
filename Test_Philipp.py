@@ -4,7 +4,42 @@ import machine_learning as ml
 import numpy as np
 import matplotlib.pyplot as plt
 db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
+immobilienart = 'Villa'
+immobilienart_string = 'SELECT immobilienart_targetenc FROM Encoding_immobilienart WHERE immobilienart=\'' + immobilienart + '\''
+immobilienart = pd.read_sql_query(immobilienart_string, con=db_connection)
+
+heizung = 'Sonstige'
+heizung_string = 'SELECT heizung_targetenc FROM Encoding_heizung WHERE heizung=\'' + heizung + '\''
+heizung = pd.read_sql_query(heizung_string, con=db_connection)
+
+immobilienzustand = 'Sonstige'
+immobilienzustand_string = 'SELECT immobilienzustand_targetenc FROM Encoding_immobilienzustand WHERE immobilienzustand=\'' + immobilienzustand + '\''
+immobilienzustand = pd.read_sql_query(immobilienzustand_string, con=db_connection)
+
+energietyp = 'Sonstige'
+energietyp_string = 'SELECT energietyp_targetenc FROM Encoding_energietyp WHERE energietyp=\'' + energietyp + '\''
+energietyp = pd.read_sql_query(energietyp_string, con=db_connection)
+
+energie_effizienzklasse = 'A'
+energie_effizienzklasse_string = 'SELECT energie_effizienzklasse_targetenc FROM Encoding_energie_effizienzklasse WHERE energie_effizienzklasse=\'' + energie_effizienzklasse + '\''
+energie_effizienzklasse = pd.read_sql_query(energie_effizienzklasse_string, con=db_connection)
+
 Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=97070', con=db_connection, index_col="index")
+#verstädterung = Meta_Daten_Beispiel['Grad der Verstädterung'].to_list()[0]
+verstädterung = 'gering besiedelt'
+#soziolage = Meta_Daten_Beispiel['sozioökonmische Lage']
+soziolage = 'nicht-ländlich'
+
+verstädterung_string = 'SELECT \'Grad der Verstädterung_targetenc\' FROM Encoding_Grad_der_Verstädterung WHERE \'Grad der Verstädterung\'=\'' + verstädterung + '\''
+verstädterung = pd.read_sql_query(verstädterung_string, con=db_connection)
+
+soziolage_string = 'SELECT \'sozioökonmische Lage_targetenc\' FROM Encoding_sozioökonmische_Lage WHERE \'sozioökonmische Lage\'=\'' + soziolage + '\''
+soziolage = pd.read_sql_query(soziolage_string, con=db_connection)
+
+#Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data', con=db_connection, index_col="index")
+#Meta_Daten_Beispiel.columns = Meta_Daten_Beispiel.columns.str.lstrip()
+#Meta_Daten_Beispiel.columns = Meta_Daten_Beispiel.columns.str.rstrip()
+#Meta_Daten_Beispiel.to_sql(name='Meta_Data', con=db_connection, if_exists='replace')
 #Trainingsdaten = pd.read_sql_query('SELECT * FROM ML_Trainingsdaten', db_connection, index_col='index')
 #Trainingsdaten.columns = Trainingsdaten.columns.str.lstrip()
 #Trainingsdaten.columns = Trainingsdaten.columns.str.rstrip()
@@ -42,7 +77,16 @@ Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=97070
 
 
 if __name__ == "__main__":
- print(Meta_Daten_Beispiel)
+ print(immobilienart)
+ print(heizung)
+ print(immobilienzustand)
+ print(energietyp)
+ print(energie_effizienzklasse)
+ #print(Meta_Daten_Beispiel.columns)
+ print(verstädterung)
+ print(soziolage)
+ #print(soziolage)
+ #print(Meta_Daten_Beispiel[['Grad der Verstädterung', 'sozioökonmische Lage']])
  #print(Trainingsdaten.columns)
  #print(Trainingsdaten.info())
  #print(x_train.info())
