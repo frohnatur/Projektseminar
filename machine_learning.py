@@ -12,6 +12,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from category_encoders import TargetEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
+import main
 
 def print_feature_importances(model, data):
     importances = pd.Series(data=model.feature_importances_,
@@ -107,8 +108,39 @@ def category(x_train, x_test):
 # Kategorische Variablen Target Encoden
 def target_encoding(x_train_cat, x_val_cat, y_train):
     target_encoder = TargetEncoder()
-
+    x_train_reference = x_train_cat
     x_train_target = target_encoder.fit_transform(x_train_cat, y_train)
+    x_train_reference = x_train_reference.join(x_train_target.add_suffix("_targetenc"))
+
+    #Referenztabellen mit Encodings erstellen
+    energietyp = x_train_reference[['energietyp', 'energietyp_targetenc']]
+    energietyp = energietyp.drop_duplicates(subset=['energietyp'])
+    energietyp.to_sql(name='Encoding_energietyp', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
+    energie_effizienzklasse = x_train_reference[['energie_effizienzklasse', 'energie_effizienzklasse_targetenc']]
+    energie_effizienzklasse = energie_effizienzklasse.drop_duplicates(subset=['energie_effizienzklasse'])
+    energie_effizienzklasse.to_sql(name='Encoding_energie_effizienzklasse', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
+    heizung = x_train_reference[['heizung', 'heizung_targetenc']]
+    heizung = heizung.drop_duplicates(subset=['heizung'])
+    heizung.to_sql(name='Encoding_heizung', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
+    immobilienart = x_train_reference[['immobilienart', 'immobilienart_targetenc']]
+    immobilienart = immobilienart.drop_duplicates(subset=['immobilienart'])
+    immobilienart.to_sql(name='Encoding_immobilienart', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
+    immobilienzustand = x_train_reference[['immobilienzustand', 'immobilienzustand_targetenc']]
+    immobilienzustand = immobilienzustand.drop_duplicates(subset=['immobilienzustand'])
+    immobilienzustand.to_sql(name='Encoding_immobilienzustand', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
+    Grad_der_Verstädterung = x_train_reference[['Grad der Verstädterung', 'Grad der Verstädterung_targetenc']]
+    Grad_der_Verstädterung = Grad_der_Verstädterung.drop_duplicates(subset=['Grad der Verstädterung'])
+    Grad_der_Verstädterung.to_sql(name='Encoding_Grad_der_Verstädterung', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
+    sozioökonmische_Lage = x_train_reference[['sozioökonmische Lage', 'sozioökonmische Lage_targetenc']]
+    sozioökonmische_Lage = sozioökonmische_Lage.drop_duplicates(subset=['sozioökonmische Lage'])
+    sozioökonmische_Lage.to_sql(name='Encoding_sozioökonmische_Lage', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
+
     x_val_target = target_encoder.transform(x_val_cat)
     return x_train_target, x_val_target
 

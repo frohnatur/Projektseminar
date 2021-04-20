@@ -7,9 +7,10 @@ import data_modeling as dm
 # import gui
 import machine_learning as ml
 # import webscraper as ws
-
+global db_conncetion
 
 def setup_database(path):
+    #global db_connection
     db_connection = None
     try:
         db_connection = sqlite3.connect(path)
@@ -27,6 +28,7 @@ def main():
     # Set up database
     print("Step 1: Set up database...")
 
+    #global db_connection
     db_connection = setup_database(r"Datenbank/ImmoDB.db")
     db_cursor = db_connection.cursor()
 
@@ -135,8 +137,10 @@ def main():
     x_train = x_train.reindex(sorted(x_train.columns), axis=1)
     x_test = x_test.reindex(sorted(x_test.columns), axis=1)
 
+    x_train.to_sql(name='X_train', con=db_connection, if_exists='replace')
+    x_test.to_sql(name='X_test', con=db_connection, if_exists='replace')
     # Durchführung der ML-Test
-    ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
+    #ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
 
     # Testausgaben
     # print("Optional: Create Excel files...")
