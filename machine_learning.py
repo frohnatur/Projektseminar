@@ -92,11 +92,13 @@ def normalisation(x_train_num, x_val_num):
 
 # Standardisierung der numerischen Daten (Als alternative zur Normalisierung)
 def standardization(x_train_num, x_val_num):
-    scaler = StandardScaler()
+    num_scaler = StandardScaler()
+    num_scaler.fit(x_train_num)
+    pickle.dump(num_scaler, open('num_scaler.pckl', 'wb'))
 
-    x_train_num = pd.DataFrame(scaler.fit_transform(x_train_num),
+    x_train_num = pd.DataFrame(num_scaler.transform(x_train_num),
                                columns=x_train_num.columns, index=x_train_num.index)
-    x_val_num = pd.DataFrame(scaler.transform(x_val_num),
+    x_val_num = pd.DataFrame(num_scaler.transform(x_val_num),
                              columns=x_train_num.columns, index=x_val_num.index)
     return x_train_num, x_val_num
 
@@ -111,8 +113,13 @@ def category(x_train, x_test):
 # Kategorische Variablen Target Encoden
 def target_encoding(x_train_cat, x_val_cat, y_train):
     target_encoder = TargetEncoder()
+    scaler = StandardScaler()
+
     x_train_reference = x_train_cat
     x_train_target = target_encoder.fit_transform(x_train_cat, y_train)
+    x_train_target = pd.DataFrame(scaler.fit_transform(x_train_target),
+                 columns=x_train_target.columns, index=x_train_target.index)
+
     x_train_reference = x_train_reference.join(x_train_target.add_suffix("_targetenc"))
 
     #Referenztabellen mit Encodings erstellen
@@ -145,6 +152,8 @@ def target_encoding(x_train_cat, x_val_cat, y_train):
     sozioökonmische_Lage.to_sql(name='Encoding_sozioökonmische_Lage', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
 
     x_val_target = target_encoder.transform(x_val_cat)
+    x_val_target= pd.DataFrame(scaler.fit_transform(x_val_target),
+                 columns=x_val_target.columns, index=x_val_target.index)
     return x_train_target, x_val_target
 
 # Zusammenführung kategorischer und numerischer Varibalen + Speicherung unter Standart Variablennamen

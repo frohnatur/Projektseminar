@@ -215,10 +215,27 @@ def user_input_features():
         soziolage = np.float32(pd.read_sql_query(soziolage_string, con=db_connection).iloc[0][0])
         features['sozioökonomische_Lage'] = soziolage
 
+        num_scaler = pickle.load(open('Projektseminar/num_scaler.pckl', 'rb'))
+
+        cat_features = features[['energietyp', 'energie_effizienzklasse',
+                                        'heizung', 'immobilienart', 'immobilienzustand', 'Grad_der_Verstädterung',
+                                        'sozioökonomische_Lage']]
+        features.drop(columns=['energietyp', 'energie_effizienzklasse',
+                                        'heizung', 'immobilienart', 'immobilienzustand', 'Grad_der_Verstädterung',
+                                        'sozioökonomische_Lage'], inplace=True)
+
+        features = pd.DataFrame(num_scaler.transform(features),
+                               columns=features.columns, index=features.index)
+
+        features.to_sql(name='Features_scaler', con=db_connection, if_exists='replace')
+
+        features = pd.concat([features, cat_features], axis=1)
+
         features.rename(columns={'immobilienart': 'immobilienart_targetenc', 'immobilienzustand': 'immobilienzustand_targetenc',
                                  'energietyp': 'energietyp_targetenc', 'energie_effizienzklasse': 'energie_effizienzklasse_targetenc',
                                  'heizung': 'heizung_targetenc', 'Grad_der_Verstädterung': 'Grad_der_Verstädterung_targetenc',
                                  'sozioökonomische_Lage': 'sozioökonomische_Lage_targetenc'}, inplace=True)
+
 
         features = features.reindex(sorted(features.columns), axis=1)
         features.to_sql(name='Features', con=db_connection, if_exists='replace')
@@ -228,7 +245,7 @@ input_df = user_input_features()
 
 
 # Einlesen des Models aus der Pickle-Datei
-load_XGB_modell = pickle.load(open('Projektseminar/XGB_Standardmodell_20210421-1306.pckl', 'rb'))
+load_XGB_modell = pickle.load(open('Projektseminar/rf_Standardmodell_20210421-1753.pckl', 'rb'))
 
 # Abstandshalter
 st.write('')
