@@ -1,7 +1,10 @@
+import time
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import xgboost as xgb
+import pickle
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
@@ -53,10 +56,10 @@ def variables(imputed_data):
     for col in ['wohnflaeche', 'anzahl_zimmer']:
         val = imputed_data[col].mean()
         imputed_data[col] = imputed_data[col].replace(0.0, val)
-    imputed_data['zimmergröße'] = (imputed_data['wohnflaeche'] / imputed_data['anzahl_zimmer']).round(2)
+    #imputed_data['zimmergröße'] = (imputed_data['wohnflaeche'] / imputed_data['anzahl_zimmer']).round(2)
 
-    mean_plz = imputed_data.groupby('plz')['angebotspreis'].mean().round(2)
-    imputed_data['plz'] = imputed_data['plz'].map(mean_plz)
+    #mean_plz = imputed_data.groupby('plz')['angebotspreis'].mean().round(2)
+    #imputed_data['plz'] = imputed_data['plz'].map(mean_plz)
     return imputed_data
 
 
@@ -70,11 +73,11 @@ def tr_te_spl(imputed_data):
 # Sample mit nur nummerischen Daten erzeugen
 def numeric(x_train, x_test):
     x_train_num = x_train.drop(columns=['energietyp', 'energie_effizienzklasse',
-                                        'heizung', 'immobilienart', 'immobilienzustand', 'Grad der Verstädterung',
-                                        'sozioökonmische Lage'])
+                                        'heizung', 'immobilienart', 'immobilienzustand', 'Grad_der_Verstädterung',
+                                        'sozioökonomische_Lage'])
     x_val_num = x_test.drop(columns=['energietyp', 'energie_effizienzklasse',
-                                     'heizung', 'immobilienart', 'immobilienzustand', 'Grad der Verstädterung',
-                                     'sozioökonmische Lage'])
+                                     'heizung', 'immobilienart', 'immobilienzustand', 'Grad_der_Verstädterung',
+                                     'sozioökonomische_Lage'])
     return x_train_num, x_val_num
 
 # Normalisierung der numerischen Daten (Als Alternative zur Standardisierung)
@@ -100,9 +103,9 @@ def standardization(x_train_num, x_val_num):
 # Sample mit nur kategorischen Variablen erzeugen (Mehr als Zwei Kategorien)
 def category(x_train, x_test):
     x_train_cat = x_train[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand',
-                           'Grad der Verstädterung', 'sozioökonmische Lage']]
+                           'Grad_der_Verstädterung', 'sozioökonomische_Lage']]
     x_val_cat = x_test[['energietyp', 'energie_effizienzklasse', 'heizung', 'immobilienart', 'immobilienzustand',
-                        'Grad der Verstädterung', 'sozioökonmische Lage']]
+                        'Grad_der_Verstädterung', 'sozioökonomische_Lage']]
     return x_train_cat, x_val_cat
 
 # Kategorische Variablen Target Encoden
@@ -133,12 +136,12 @@ def target_encoding(x_train_cat, x_val_cat, y_train):
     immobilienzustand = immobilienzustand.drop_duplicates(subset=['immobilienzustand'])
     immobilienzustand.to_sql(name='Encoding_immobilienzustand', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
 
-    Grad_der_Verstädterung = x_train_reference[['Grad der Verstädterung', 'Grad der Verstädterung_targetenc']]
-    Grad_der_Verstädterung = Grad_der_Verstädterung.drop_duplicates(subset=['Grad der Verstädterung'])
+    Grad_der_Verstädterung = x_train_reference[['Grad_der_Verstädterung', 'Grad_der_Verstädterung_targetenc']]
+    Grad_der_Verstädterung = Grad_der_Verstädterung.drop_duplicates(subset=['Grad_der_Verstädterung'])
     Grad_der_Verstädterung.to_sql(name='Encoding_Grad_der_Verstädterung', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
 
-    sozioökonmische_Lage = x_train_reference[['sozioökonmische Lage', 'sozioökonmische Lage_targetenc']]
-    sozioökonmische_Lage = sozioökonmische_Lage.drop_duplicates(subset=['sozioökonmische Lage'])
+    sozioökonmische_Lage = x_train_reference[['sozioökonomische_Lage', 'sozioökonomische_Lage_targetenc']]
+    sozioökonmische_Lage = sozioökonmische_Lage.drop_duplicates(subset=['sozioökonomische_Lage'])
     sozioökonmische_Lage.to_sql(name='Encoding_sozioökonmische_Lage', con=main.setup_database(r"Datenbank/ImmoDB.db"), if_exists='replace')
 
     x_val_target = target_encoder.transform(x_val_cat)
@@ -161,6 +164,12 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     rmse = np.sqrt(mean_squared_error(y_test, preds))
     print("RMSE: %f" % rmse)
     print()
+
+    datestr = time.strftime("%Y%m%d-%H%M")
+
+    xg_reg_file = 'XGB_Standardmodell_' + datestr + '.pckl'
+    with open(xg_reg_file, 'wb') as f:
+        pickle.dump(xg_reg, f)
 
     #print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
 
@@ -240,5 +249,9 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     rmse = np.sqrt(mean_squared_error(y_test, y_pred2))
     print("RMSE: %f" % rmse)
     print()
+
+    rf_file = 'rf_Standardmodell_' + datestr + '.pckl'
+    with open(rf_file, 'wb') as f:
+        pickle.dump(rf, f)
 
     print_feature_importances(model=rf, data=imputed_data.drop(columns=["angebotspreis"]))

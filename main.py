@@ -91,7 +91,7 @@ def main():
 
     # Machine Learning
     print("Step 7: Machine learning tests...")
-    imputed_data = pd.read_sql_query('SELECT * FROM ML_Trainingsdaten', db_connection, index_col='index')
+    imputed_data = pd.read_sql_query('SELECT * FROM ML_Trainingsdaten_upd', db_connection, index_col='index')
     # Aureisser mit Yaninas funktion bei imputed_data entfernen (Vorbereitung ML-Test)
     imputed_data = ml.outlier_drop(imputed_data)
 
@@ -99,7 +99,7 @@ def main():
     imputed_data = ml.boolean(imputed_data)
 
     # PLZ als durchschnittlicher Angebotspreis pro plz und zimmergröße als variable
-    imputed_data = ml.variables(imputed_data)
+    #imputed_data = ml.variables(imputed_data)
 
     imputed_data.drop(columns=["plz"], inplace=True)
     # train_test_split
@@ -140,7 +140,7 @@ def main():
     x_train.to_sql(name='X_train', con=db_connection, if_exists='replace')
     x_test.to_sql(name='X_test', con=db_connection, if_exists='replace')
     # Durchführung der ML-Test
-    #ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
+    ml.ml_tests(x_train, x_test, y_train, y_test, imputed_data)
 
     # Testausgaben
     # print("Optional: Create Excel files...")

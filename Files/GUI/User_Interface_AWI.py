@@ -1,9 +1,10 @@
+import sqlite3
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
-import shap
-import main
+#import main
 from pandas_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 from sklearn.ensemble import RandomForestRegressor
@@ -16,14 +17,14 @@ from sklearn.metrics import mean_squared_error
 # Alle ohne Grundstücksfläche und Wohnfläche raus
 # Spalten raus: Längengrad, Breitengrad, PLZ
 
-
+db_connection = sqlite3.connect('Projektseminar/Datenbank/ImmoDB.db')
 # allgemeine Streamlit Einstellungen (Tab Name; Icon; Seitenlayout; Menü)
-st.set_page_config('AWI', 'Logo AWI klein.jpg', 'centered', 'expanded')
+st.set_page_config('AWI', 'Projektseminar/Files/GUI/Logo AWI klein.jpg', 'centered', 'expanded')
 
 
 #Logo einfügen
-st.image('Logo AWI.jpg')
-st.image('AbstandshalterAWI.jpg')
+st.image('Projektseminar/Files/GUI/Logo AWI.jpg')
+st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
 
 
 #Infotext
@@ -45,7 +46,7 @@ st.write('---')
 
 
 #Überschrift und Abstandshalter
-st.image('AbstandshalterAWI.jpg')
+st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
 st.subheader('Beschreibe deine Immobilie:')
 
 
@@ -149,22 +150,22 @@ def user_input_features():
                 'G',
                 'H',                
                 'Unbekannt'))
-            einwohner = st.slider('Einwohner', 0, 10000, 5300)
 
+        #Kategorische Variablen codieren
         immobilienart_string = 'SELECT immobilienart_targetenc FROM Encoding_immobilienart WHERE immobilienart=\'' + immobilienart + '\''
-        immobilienart = pd.read_sql_query(immobilienart_string, con=db_connection)
+        immobilienart = np.float32(pd.read_sql_query(immobilienart_string, con=db_connection).iloc[0][0])
 
         heizung_string = 'SELECT heizung_targetenc FROM Encoding_heizung WHERE heizung=\'' + heizung + '\''
-        heizung = pd.read_sql_query(heizung_string, con=db_connection)
+        heizung = np.float32(pd.read_sql_query(heizung_string, con=db_connection).iloc[0][0])
 
         immobilienzustand_string = 'SELECT immobilienzustand_targetenc FROM Encoding_immobilienzustand WHERE immobilienzustand=\'' + immobilienzustand + '\''
-        immobilienzustand = pd.read_sql_query(immobilienzustand_string, con=db_connection)
+        immobilienzustand = np.float32(pd.read_sql_query(immobilienzustand_string, con=db_connection).iloc[0][0])
 
         energietyp_string = 'SELECT energietyp_targetenc FROM Encoding_energietyp WHERE energietyp=\'' + energietyp + '\''
-        energietyp = pd.read_sql_query(energietyp_string, con=db_connection)
+        energietyp = np.float32(pd.read_sql_query(energietyp_string, con=db_connection).iloc[0][0])
 
         energie_effizienzklasse_string = 'SELECT energie_effizienzklasse_targetenc FROM Encoding_energie_effizienzklasse WHERE energie_effizienzklasse=\'' + energie_effizienzklasse + '\''
-        energie_effizienzklasse = pd.read_sql_query(energie_effizienzklasse_string, con=db_connection)
+        energie_effizienzklasse = np.float32(pd.read_sql_query(energie_effizienzklasse_string, con=db_connection).iloc[0][0])
 
 
         #Zuordnung der Eingabe-Features
@@ -184,71 +185,72 @@ def user_input_features():
                 'anzahl_zimmer': anzahl_zimmer,
                 'anzahl_parkplatz': anzahl_parkplatz,
                 'baujahr': baujahr,
-                'einwohner': einwohner,
                 'grundstuecksflaeche': grundstuecksflaeche,
                 'wohnflaeche': wohnflaeche}
         features = pd.DataFrame(data, index=[0])
-        pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=plz', con=db_connection, index_col="index")
+
+        features = features.assign(aufzug=(features['aufzug'] == 'JA').astype(int))
+        features = features.assign(barrierefrei=(features['barrierefrei'] == 'JA').astype(int))
+        features = features.assign(gaeste_wc=(features['gaeste_wc'] == 'JA').astype(int))
+        features = features.assign(terrasse_balkon=(features['terrasse_balkon'] == 'JA').astype(int))
+        features = features.assign(unterkellert=(features['unterkellert'] == 'JA').astype(int))
+        features = features.assign(vermietet=(features['vermietet'] == 'JA').astype(int))
+
+        #Metadaten aus Datenbank auslesen
+        Metadaten = pd.read_sql_query('SELECT * FROM Meta_Data_upd WHERE plz=plz', con=db_connection, index_col="index")
+        Metadaten = Metadaten.assign(
+            supermarkt_im_plz_gebiet=(Metadaten['Supermarkt im PLZ Gebiet'] == 'JA').astype(int))
+        Metadaten.drop(columns=['Supermarkt im PLZ Gebiet'], inplace=True)
+
+        features = features.merge(Metadaten, how="inner", on="plz")
+        features.drop(columns=['plz'], inplace=True)
+
+        verstädterung = features['Grad_der_Verstädterung'].to_list()[0]
+        verstädterung_string = 'SELECT Grad_der_Verstädterung_targetenc FROM Encoding_Grad_der_Verstädterung WHERE Grad_der_Verstädterung=\'' + verstädterung + '\''
+        verstädterung = np.float32(pd.read_sql_query(verstädterung_string, con=db_connection).iloc[0][0])
+        features['Grad_der_Verstädterung'] = verstädterung
+
+        soziolage = features['sozioökonomische_Lage'].to_list()[0]
+        soziolage_string = 'SELECT sozioökonomische_Lage_targetenc FROM Encoding_sozioökonmische_Lage WHERE sozioökonomische_Lage=\'' + soziolage + '\''
+        soziolage = np.float32(pd.read_sql_query(soziolage_string, con=db_connection).iloc[0][0])
+        features['sozioökonomische_Lage'] = soziolage
+
+        features.rename(columns={'immobilienart': 'immobilienart_targetenc', 'immobilienzustand': 'immobilienzustand_targetenc',
+                                 'energietyp': 'energietyp_targetenc', 'energie_effizienzklasse': 'energie_effizienzklasse_targetenc',
+                                 'heizung': 'heizung_targetenc', 'Grad_der_Verstädterung': 'Grad_der_Verstädterung_targetenc',
+                                 'sozioökonomische_Lage': 'sozioökonomische_Lage_targetenc'}, inplace=True)
+
+        features = features.reindex(sorted(features.columns), axis=1)
+        features.to_sql(name='Features', con=db_connection, if_exists='replace')
         return features
+
 input_df = user_input_features()
-
-    
-# Kombination der Input_Features mit dem Datensatz
-immo_data_raw = pd.read_csv('imputed_all.csv')
-immo_data = immo_data_raw.drop(columns=['angebotspreis'])
-df = pd.concat([input_df,immo_data],axis=0)
-
-
-# Encoding der Object-Variablen
-encode = [
-    'immobilienart',
-    'immobilienzustand',
-    'barrierefrei',
-    'terrasse_balkon',
-    'unterkellert',
-    'vermietet',
-    'energietyp',
-    'heizung',
-    'gaeste_wc',
-    'energie_effizienzklasse',
-    'aufzug']
-         
-for col in encode:
-    dummy = pd.get_dummies(df[col], prefix=col)
-    df = pd.concat([df,dummy], axis=1)
-    del df[col]
-df = df[:1]
 
 
 # Einlesen des Models aus der Pickle-Datei
-load_random_forrest_reg = pickle.load(open('random_forrest_reg.pkl', 'rb'))
-
+load_XGB_modell = pickle.load(open('Projektseminar/XGB_Standardmodell_20210421-1306.pckl', 'rb'))
 
 # Abstandshalter
 st.write('')
-st.image('AbstandshalterAWI.jpg')
-
-
-# Definition der Prediction
-x_new = df.values
+st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
 
 
 # Definition des Outputs
 output = ''
 if st.button('Wertanalyse starten'):
-    output = load_random_forrest_reg.predict(x_new)
+    output = int(load_XGB_modell.predict(input_df)[0])
     output = str(output) + '€'
     st.success('Der Wert Ihrer Immobilie liegt bei {}'.format(output))
     
 
 # Abstandshalter
 st.write('')
-st.image('AbstandshalterAWI.jpg')
+st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
     
     
 # weitere graphische Darstellungen
 if st.button('Graphische Datenanalyse'):
-    data = pd.read_csv('imputed_data_original.csv')
+    data = pd.read_csv('Projektseminar/Files/GUI/imputed_data_original.csv')
     st.map(data)
     
 
@@ -256,3 +258,6 @@ if st.button('Graphische Datenanalyse'):
 if st.button('Explorative Datenanalyse'):
     load_pr = pickle.load(open('pr.pkl', 'rb'))
     st_profile_report(load_pr)
+
+if __name__ == "__main__":
+    print('Hallo')

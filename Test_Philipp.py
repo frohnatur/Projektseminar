@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
 immobilienart = 'Villa'
 immobilienart_string = 'SELECT immobilienart_targetenc FROM Encoding_immobilienart WHERE immobilienart=\'' + immobilienart + '\''
-immobilienart = pd.read_sql_query(immobilienart_string, con=db_connection)
+immobilienart = np.float32(pd.read_sql_query(immobilienart_string, con=db_connection).iloc[0][0])
 
 heizung = 'Sonstige'
 heizung_string = 'SELECT heizung_targetenc FROM Encoding_heizung WHERE heizung=\'' + heizung + '\''
@@ -25,16 +25,19 @@ energie_effizienzklasse_string = 'SELECT energie_effizienzklasse_targetenc FROM 
 energie_effizienzklasse = pd.read_sql_query(energie_effizienzklasse_string, con=db_connection)
 
 Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=97070', con=db_connection, index_col="index")
-#verstädterung = Meta_Daten_Beispiel['Grad der Verstädterung'].to_list()[0]
-verstädterung = 'gering besiedelt'
-#soziolage = Meta_Daten_Beispiel['sozioökonmische Lage']
-soziolage = 'nicht-ländlich'
 
-verstädterung_string = 'SELECT \'Grad der Verstädterung_targetenc\' FROM Encoding_Grad_der_Verstädterung WHERE \'Grad der Verstädterung\'=\'' + verstädterung + '\''
-verstädterung = pd.read_sql_query(verstädterung_string, con=db_connection)
+verstädterung = Meta_Daten_Beispiel['Grad_der_Verstädterung'].to_list()[0]
+soziolage = Meta_Daten_Beispiel['sozioökonomische_Lage'].to_list()[0]
 
-soziolage_string = 'SELECT \'sozioökonmische Lage_targetenc\' FROM Encoding_sozioökonmische_Lage WHERE \'sozioökonmische Lage\'=\'' + soziolage + '\''
+verstädterung_string = 'SELECT Grad_der_Verstädterung_targetenc FROM Encoding_Grad_der_Verstädterung WHERE Grad_der_Verstädterung=\'' + verstädterung + '\''
+verstädterung = np.float32(pd.read_sql_query(verstädterung_string, con=db_connection).iloc[0][0])
+Meta_Daten_Beispiel['Grad_der_Verstädterung'] = verstädterung
+
+soziolage_string = 'SELECT sozioökonomische_Lage_targetenc FROM Encoding_sozioökonmische_Lage WHERE sozioökonomische_Lage=\'' + soziolage + '\''
 soziolage = pd.read_sql_query(soziolage_string, con=db_connection)
+
+Meta_Daten_Beispiel= Meta_Daten_Beispiel.assign(supermarkt_im_plz_gebiet=(Meta_Daten_Beispiel['Supermarkt im PLZ Gebiet'] == 'JA').astype(int))
+
 
 #Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data', con=db_connection, index_col="index")
 #Meta_Daten_Beispiel.columns = Meta_Daten_Beispiel.columns.str.lstrip()
@@ -84,6 +87,7 @@ if __name__ == "__main__":
  print(energie_effizienzklasse)
  #print(Meta_Daten_Beispiel.columns)
  print(verstädterung)
+ print(Meta_Daten_Beispiel['Grad_der_Verstädterung'])
  print(soziolage)
  #print(soziolage)
  #print(Meta_Daten_Beispiel[['Grad der Verstädterung', 'sozioökonmische Lage']])
