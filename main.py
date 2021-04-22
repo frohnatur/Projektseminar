@@ -112,7 +112,7 @@ def main():
     # x_train_num, x_val_num = ml.normalisation(x_train_num, x_val_num)
 
     # Standardisierung der numerischen Daten (Wichtig Normalisierung auskommentieren)
-    x_train_num, x_val_num = ml.standardization(x_train_num, x_val_num)
+    #x_train_num, x_val_num = ml.standardization(x_train_num, x_val_num)
 
     # Sample mit nur kategorischen Variablen erzeugen (Mehr als zwei Kategorien)
     x_train_cat, x_val_cat = ml.category(x_train, x_test)
