@@ -258,21 +258,167 @@ if st.button('Wertanalyse starten'):
     output = int(load_XGB_modell.predict(input_df)[0])
     output = str(output) + '€'
     st.success('Der Wert Ihrer Immobilie liegt bei {}'.format(output))
-    
+
+# Abstandshalter
+st.write('---')
+st.write('')
+st.image('AbstandshalterAWI.jpg')
+
+# Überschrift 3: Datenanalyse
+st.subheader('Du benötigst weitere Informationen?')
+st.write(
+    'Neben einer genauen Bewertung deines Immobilienwertes bieten wir dir tiefgreifendere Informationen für eine fundierte Bewertung. Neben informativen Hinweisen zu deiner geographischen Umgebung, stellen wir die im folgenden interaktive Datenvisualisierungen bereit. Am Ende der Seite findest du sogar eine explorative Datenanalyse, die dir einen Einblick in unsere Daten bieten soll.')
+
+# weitere Informationen zur Umgebung
+Metadaten_plz = st.beta_expander('weitere Informationen zur Umgebung')
+with Metadaten_plz:
+    st.write('Wähle eine Postleitzahl, zu der du weitere Informationen erhalten möchtest:')
+
+    plz = st.number_input('', min_value=63739, max_value=97909, value=97070)
+    st.write('---')
+
+    Meta = pd.read_sql_query('SELECT * FROM Meta_Data_upd WHERE plz=plz', con=db_connection, index_col="index")
+    Meta_ort = Meta[Meta['plz'] == plz]['Hilfe Ort'].to_list()[0]
+    Meta_einwohner = Meta[Meta['plz'] == plz]['Einwohner je PLZ'].to_list()[0]
+    Meta_einkommen = Meta[Meta['plz'] == plz]['Durschnittseinkommen'].to_list()[0]
+    Meta_arbeit = Meta[Meta['plz'] == plz]['Arbeitslosenquote in Prozent'].to_list()[0]
+    Meta_sozio = Meta[Meta['plz'] == plz]['sozioökonmische Lage'].to_list()[0]
+    Meta_miete = Meta[Meta['plz'] == plz]['Kaltmiete / qm'].to_list()[0]
+    Meta_abschluss = Meta[Meta['plz'] == plz]['Anteil nicht erfolgreicher beruflicher Bildungsgänge'].to_list()[0]
+    Meta_schulabbrecher = Meta[Meta['plz'] == plz]['Anteil Schulabbrecher'].to_list()[0]
+    Meta_allghoch = Meta[Meta['plz'] == plz]['Anteil Absolventen mit allgemeiner Hochschulreife'].to_list()[0]
+    Meta_schulen = Meta[Meta['plz'] == plz]['Statistik der allgemein bildenden Schulen'].to_list()[0]
+    Meta_landbetriebe = Meta[Meta['plz'] == plz]['Anzahl landwirtschaftlicher Betriebe'].to_list()[0]
+    Meta_betriebe = Meta[Meta['plz'] == plz]['Anzahl Betriebe'].to_list()[0]
+    Meta_wohnsiedlung = Meta[Meta['plz'] == plz]['Anteil Wohnfläche an gesamter Siedlungsfläche'].to_list()[0]
+    Meta_siedlunggesamt = Meta[Meta['plz'] == plz]['Anteil Siedlungsfläche an Gesamtfläche'].to_list()[0]
+    Meta_grüngesamt = Meta[Meta['plz'] == plz]['Anteil Grünflächen an Gesamtfläche'].to_list()[0]
+    Meta_erholunggesamt = Meta[Meta['plz'] == plz]['Anteil Erholungsflächen an Gesamtfläche'].to_list()[0]
+    Meta_supermarkt = Meta[Meta['plz'] == plz]['Supermarkt im PLZ Gebiet'].to_list()[0]
+    Meta_zahnarzt = Meta[Meta['plz'] == plz]['Erreichbarkeit von Zahnärzten'].to_list()[0]
+    Meta_apotheken = Meta[Meta['plz'] == plz]['Erreichbarkeit von Apotheken'].to_list()[0]
+    Meta_lebensmittel = Meta[Meta['plz'] == plz]['Erreichbarkeit von Lebensmittelgeschäften'].to_list()[0]
+    Meta_durchschnittsalter = Meta[Meta['plz'] == plz]['Durschnittsalter'].to_list()[0]
+    Meta_lte = Meta[Meta['plz'] == plz]['LTE Abdeckung'].to_list()[0]
+    Meta_breitband = Meta[Meta['plz'] == plz]['Breitbandversorgung'].to_list()[0]
+    Meta_verschuldung = Meta[Meta['plz'] == plz]['Verschuldung pro Einwohner in 1000'].to_list()[0]
+    Meta_verstädterung = Meta[Meta['plz'] == plz]['Grad der Verstädterung'].to_list()[0]
+    Meta_übernachtungen = Meta[Meta['plz'] == plz]['Anzahl Gästeübernachtungen in 2019'].to_list()[0]
+
+    col1, col2 = st.beta_columns(2)
+    with col1:
+        st.write('Ort deiner Postleitzahl:')
+        st.info(Meta_ort)
+
+        st.write('Durchschnittseinkommen:')
+        st.info(Meta_einkommen)
+
+        st.write('Sozioökonomische Lage:')
+        st.info(Meta_sozio)
+
+    with col2:
+        st.write('Einwohner:')
+        st.info(Meta_einwohner)
+
+        st.write('Arbeitslosenquote in Prozent:')
+        st.info(Meta_arbeit)
+
+        st.write('Kaltmiete pro qm:')
+        st.info(Meta_miete)
+
+    st.write('---')
+    st.write('Durch Klicken auf die jeweiligen Button, erhältst du nähere Informationen:')
+
+    if st.button('Informationen zum Bildungsniveau'):
+        col1, col2 = st.beta_columns(2)
+        with col1:
+            st.write('Anteil Schulabbrecher:')
+            st.info(Meta_schulabbrecher)
+
+            st.write(' Anteil nicht erfolgreicher beruflicher Bildungsgänge:')
+            st.info(Meta_abschluss)
+
+        with col2:
+            st.write('Anzahl allgemein bildender Schulen:')
+            st.info(Meta_schulen)
+
+            st.write('Anteil Absolventen mit allgemeiner Hochschulreife:')
+            st.info(Meta_allghoch)
+
+    if st.button('finanzielle und soziale Indikatoren'):
+        col1, col2 = st.beta_columns(2)
+        with col1:
+            st.write('Durchschnittsalter:')
+            st.info(Meta_durchschnittsalter)
+
+            st.write('LTE Abdeckung:')
+            st.info(Meta_lte)
+
+            st.write('Breitbandversorgung:')
+            st.info(Meta_breitband)
+
+        with col2:
+            st.write('Verschuldung pro Einwohner in 1000:')
+            st.info(Meta_verschuldung)
+
+            st.write('Grad der Verstädterung:')
+            st.info(Meta_verstädterung)
+
+            st.write('Anzahl Gästeübernachtungen:')
+            st.info(Meta_übernachtungen)
+
+    if st.button('Anteil der Flächennutzung'):
+        col1, col2 = st.beta_columns(2)
+        with col1:
+            st.write('Anzahl landwirtschaftlicher Betriebe:')
+            st.info(Meta_landbetriebe)
+
+            st.write('Anzahl Betriebe:')
+            st.info(Meta_betriebe)
+
+            st.write('Anteil Wohnfläche an der Siedlungsfläche:')
+            st.info(Meta_wohnsiedlung)
+
+        with col2:
+            st.write('Anteil Grünflächen an Gesamtfläche:')
+            st.info(Meta_grüngesamt)
+
+            st.write('Anteil Siedlungsfläche an Gesamtfläche:')
+            st.info(Meta_siedlunggesamt)
+
+            st.write('Anteil Erholungsflächen an Gesamtfläche:')
+            st.info(Meta_erholunggesamt)
+
+    if st.button('Erreichbarkeiten wesentlicher Einrichtungen'):
+        col1, col2 = st.beta_columns(2)
+        with col1:
+            st.write('Supermarkt im PLZ Gebiet?:')
+            st.info(Meta_supermarkt)
+
+            st.write('Erreichbarkeit von Zahnärzten:')
+            st.info(Meta_zahnarzt)
+
+        with col2:
+            st.write('Erreichbarkeit von Apotheken:')
+            st.info(Meta_apotheken)
+
+            st.write('Erreichbarkeit von Lebensmittelgeschäften:')
+            st.info(Meta_lebensmittel)
 
 # Abstandshalter
 st.write('')
-st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
-    
-    
-# weitere graphische Darstellungen
-if st.button('Graphische Datenanalyse'):
-    data = pd.read_csv('Projektseminar/Files/GUI/imputed_data_original.csv')
-    st.map(data)
-    
 
-    # EDA
-if st.button('Explorative Datenanalyse'):
+# graphische Darstellungen
+graph = st.beta_expander('graphische Datenaufbereitung')
+with graph:
+    st.write('hier folgen Grafiken...')
+
+# Abstandshalter
+st.write('')
+
+# explorative Analyse des verwendeten Datensatzes
+eda = st.beta_expander('explorative Analyse des verwendeten Datensatzes')
+with eda:
     load_pr = pickle.load(open('pr.pkl', 'rb'))
     st_profile_report(load_pr)
 
