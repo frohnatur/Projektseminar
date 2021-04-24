@@ -3,40 +3,43 @@ import sqlite3
 import machine_learning as ml
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import sys
+from streamlit import cli as stcli
 db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
-immobilienart = 'Villa'
-immobilienart_string = 'SELECT immobilienart_targetenc FROM Encoding_immobilienart WHERE immobilienart=\'' + immobilienart + '\''
-immobilienart = np.float32(pd.read_sql_query(immobilienart_string, con=db_connection).iloc[0][0])
+#immobilienart = 'Villa'
+#immobilienart_string = 'SELECT immobilienart_targetenc FROM Encoding_immobilienart WHERE immobilienart=\'' + immobilienart + '\''
+#immobilienart = np.float32(pd.read_sql_query(immobilienart_string, con=db_connection).iloc[0][0])
 
-heizung = 'Sonstige'
-heizung_string = 'SELECT heizung_targetenc FROM Encoding_heizung WHERE heizung=\'' + heizung + '\''
-heizung = pd.read_sql_query(heizung_string, con=db_connection)
+#heizung = 'Sonstige'
+#heizung_string = 'SELECT heizung_targetenc FROM Encoding_heizung WHERE heizung=\'' + heizung + '\''
+#heizung = pd.read_sql_query(heizung_string, con=db_connection)
 
-immobilienzustand = 'Sonstige'
-immobilienzustand_string = 'SELECT immobilienzustand_targetenc FROM Encoding_immobilienzustand WHERE immobilienzustand=\'' + immobilienzustand + '\''
-immobilienzustand = pd.read_sql_query(immobilienzustand_string, con=db_connection)
+#immobilienzustand = 'Sonstige'
+#immobilienzustand_string = 'SELECT immobilienzustand_targetenc FROM Encoding_immobilienzustand WHERE immobilienzustand=\'' + immobilienzustand + '\''
+#immobilienzustand = pd.read_sql_query(immobilienzustand_string, con=db_connection)
 
-energietyp = 'Sonstige'
-energietyp_string = 'SELECT energietyp_targetenc FROM Encoding_energietyp WHERE energietyp=\'' + energietyp + '\''
-energietyp = pd.read_sql_query(energietyp_string, con=db_connection)
+#energietyp = 'Sonstige'
+#energietyp_string = 'SELECT energietyp_targetenc FROM Encoding_energietyp WHERE energietyp=\'' + energietyp + '\''
+#energietyp = pd.read_sql_query(energietyp_string, con=db_connection)
 
-energie_effizienzklasse = 'A'
-energie_effizienzklasse_string = 'SELECT energie_effizienzklasse_targetenc FROM Encoding_energie_effizienzklasse WHERE energie_effizienzklasse=\'' + energie_effizienzklasse + '\''
-energie_effizienzklasse = pd.read_sql_query(energie_effizienzklasse_string, con=db_connection)
+#energie_effizienzklasse = 'A'
+#energie_effizienzklasse_string = 'SELECT energie_effizienzklasse_targetenc FROM Encoding_energie_effizienzklasse WHERE energie_effizienzklasse=\'' + energie_effizienzklasse + '\''
+#energie_effizienzklasse = pd.read_sql_query(energie_effizienzklasse_string, con=db_connection)
 
-Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=97070', con=db_connection, index_col="index")
+#Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data WHERE plz=97070', con=db_connection, index_col="index")
 
-verstädterung = Meta_Daten_Beispiel['Grad_der_Verstädterung'].to_list()[0]
-soziolage = Meta_Daten_Beispiel['sozioökonomische_Lage'].to_list()[0]
+#verstädterung = Meta_Daten_Beispiel['Grad_der_Verstädterung'].to_list()[0]
+#soziolage = Meta_Daten_Beispiel['sozioökonomische_Lage'].to_list()[0]
 
-verstädterung_string = 'SELECT Grad_der_Verstädterung_targetenc FROM Encoding_Grad_der_Verstädterung WHERE Grad_der_Verstädterung=\'' + verstädterung + '\''
-verstädterung = np.float32(pd.read_sql_query(verstädterung_string, con=db_connection).iloc[0][0])
-Meta_Daten_Beispiel['Grad_der_Verstädterung'] = verstädterung
+#verstädterung_string = 'SELECT Grad_der_Verstädterung_targetenc FROM Encoding_Grad_der_Verstädterung WHERE Grad_der_Verstädterung=\'' + verstädterung + '\''
+#verstädterung = np.float32(pd.read_sql_query(verstädterung_string, con=db_connection).iloc[0][0])
+#Meta_Daten_Beispiel['Grad_der_Verstädterung'] = verstädterung
 
-soziolage_string = 'SELECT sozioökonomische_Lage_targetenc FROM Encoding_sozioökonmische_Lage WHERE sozioökonomische_Lage=\'' + soziolage + '\''
-soziolage = pd.read_sql_query(soziolage_string, con=db_connection)
+#soziolage_string = 'SELECT sozioökonomische_Lage_targetenc FROM Encoding_sozioökonmische_Lage WHERE sozioökonomische_Lage=\'' + soziolage + '\''
+#soziolage = pd.read_sql_query(soziolage_string, con=db_connection)
 
-Meta_Daten_Beispiel= Meta_Daten_Beispiel.assign(supermarkt_im_plz_gebiet=(Meta_Daten_Beispiel['Supermarkt im PLZ Gebiet'] == 'JA').astype(int))
+#Meta_Daten_Beispiel= Meta_Daten_Beispiel.assign(supermarkt_im_plz_gebiet=(Meta_Daten_Beispiel['Supermarkt im PLZ Gebiet'] == 'JA').astype(int))
 
 
 #Meta_Daten_Beispiel = pd.read_sql_query('SELECT * FROM Meta_Data', con=db_connection, index_col="index")
@@ -79,16 +82,31 @@ Meta_Daten_Beispiel= Meta_Daten_Beispiel.assign(supermarkt_im_plz_gebiet=(Meta_D
 #Trainingsdaten = pd.merge(Daten, Metadaten, how="inner", on="plz")
 
 
+
+
+
 if __name__ == "__main__":
- print(immobilienart)
- print(heizung)
- print(immobilienzustand)
- print(energietyp)
- print(energie_effizienzklasse)
- #print(Meta_Daten_Beispiel.columns)
- print(verstädterung)
- print(Meta_Daten_Beispiel['Grad_der_Verstädterung'])
- print(soziolage)
+ filename = 'Files/GUI/User_Interface_AWI.py'
+ sys.argv = ["streamlit", "run", filename]
+ sys.exit(stcli.main())
+
+
+
+
+
+
+
+
+ #os.system('Streamlit run C:\\Users\\Philipp Höppner\\Desktop\\Projektseminar-master\\Projektseminar\\Files\\GUI\\' + filename)
+ #print(immobilienart)
+ #print(heizung)
+ #print(immobilienzustand)
+ #print(energietyp)
+ #print(energie_effizienzklasse)
+ ##print(Meta_Daten_Beispiel.columns)
+ #print(verstädterung)
+ #print(Meta_Daten_Beispiel['Grad_der_Verstädterung'])
+ #print(soziolage)
  #print(soziolage)
  #print(Meta_Daten_Beispiel[['Grad der Verstädterung', 'sozioökonmische Lage']])
  #print(Trainingsdaten.columns)

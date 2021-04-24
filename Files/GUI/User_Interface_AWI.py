@@ -4,7 +4,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
+import sys
+from streamlit import cli as stcli
 #import main
+from streamlit.script_runner import RerunException, StopException
 from pandas_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 from sklearn.ensemble import RandomForestRegressor
@@ -17,14 +20,14 @@ from sklearn.metrics import mean_squared_error
 # Alle ohne Grundstücksfläche und Wohnfläche raus
 # Spalten raus: Längengrad, Breitengrad, PLZ
 
-db_connection = sqlite3.connect('Projektseminar/Datenbank/ImmoDB.db')
+db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
 # allgemeine Streamlit Einstellungen (Tab Name; Icon; Seitenlayout; Menü)
 st.set_page_config('AWI', 'Projektseminar/Files/GUI/Logo AWI klein.jpg', 'centered', 'expanded')
 
 
 #Logo einfügen
-st.image('Projektseminar/Files/GUI/Logo AWI.jpg')
-st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
+st.image('Files/GUI/Logo AWI.jpg')
+st.image('Files/GUI/AbstandshalterAWI.jpg')
 
 
 #Infotext
@@ -46,7 +49,7 @@ st.write('---')
 
 
 #Überschrift und Abstandshalter
-st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
+st.image('Files/GUI/AbstandshalterAWI.jpg')
 st.subheader('Beschreibe deine Immobilie:')
 
 
@@ -62,6 +65,9 @@ def user_input_features():
             baujahr = st.number_input('Baujahr', max_value=2023, value=2007)
         with col2:
             plz = st.number_input('Wie lautet deine PLZ?', min_value=63739, max_value=97909, value=97070)
+            if plz not in pd.read_sql_query('SELECT plz FROM Meta_Data_upd', con=db_connection)['plz'].to_list():
+                st.error('Diese Postleitzahl befindet sich nicht in der Datenbank')
+                raise StopException()
         
         #Eingabefeld 2 in Expander mit zwei Spalten (Anzahl Zimmer, Anzahl Parkplatz, Immoart, Anzahl Badezimmer,...)
         weitereDetails = st.beta_expander('weitere Details')
@@ -245,11 +251,11 @@ input_df = user_input_features()
 
 
 # Einlesen des Models aus der Pickle-Datei
-load_XGB_modell = pickle.load(open('Projektseminar/XGB_Standardmodell_20210421-2205.pckl', 'rb'))
+load_XGB_modell = pickle.load(open('XGB_Standardmodell_20210421-2205.pckl', 'rb'))
 
 # Abstandshalter
 st.write('')
-st.image('Projektseminar/Files/GUI/AbstandshalterAWI.jpg')
+st.image('Files/GUI/AbstandshalterAWI.jpg')
 
 
 # Definition des Outputs
@@ -258,12 +264,12 @@ if st.button('Wertanalyse starten'):
     output = int(load_XGB_modell.predict(input_df)[0])
     output = str(output) + '€'
     st.success('Der Wert Ihrer Immobilie liegt bei {}'.format(output))
+    
 
 # Abstandshalter
-st.write('---')
 st.write('')
-st.image('AbstandshalterAWI.jpg')
-
+st.image('Files/GUI/AbstandshalterAWI.jpg')
+    
 # Überschrift 3: Datenanalyse
 st.subheader('Du benötigst weitere Informationen?')
 st.write(
@@ -278,11 +284,11 @@ with Metadaten_plz:
     st.write('---')
 
     Meta = pd.read_sql_query('SELECT * FROM Meta_Data_upd WHERE plz=plz', con=db_connection, index_col="index")
-    Meta_ort = Meta[Meta['plz'] == plz]['Hilfe Ort'].to_list()[0]
+    #Meta_ort = Meta[Meta['plz'] == plz]['Hilfe Ort'].to_list()[0]
     Meta_einwohner = Meta[Meta['plz'] == plz]['Einwohner je PLZ'].to_list()[0]
     Meta_einkommen = Meta[Meta['plz'] == plz]['Durschnittseinkommen'].to_list()[0]
     Meta_arbeit = Meta[Meta['plz'] == plz]['Arbeitslosenquote in Prozent'].to_list()[0]
-    Meta_sozio = Meta[Meta['plz'] == plz]['sozioökonmische Lage'].to_list()[0]
+    Meta_sozio = Meta[Meta['plz'] == plz]['sozioökonomische_Lage'].to_list()[0]
     Meta_miete = Meta[Meta['plz'] == plz]['Kaltmiete / qm'].to_list()[0]
     Meta_abschluss = Meta[Meta['plz'] == plz]['Anteil nicht erfolgreicher beruflicher Bildungsgänge'].to_list()[0]
     Meta_schulabbrecher = Meta[Meta['plz'] == plz]['Anteil Schulabbrecher'].to_list()[0]
@@ -302,13 +308,13 @@ with Metadaten_plz:
     Meta_lte = Meta[Meta['plz'] == plz]['LTE Abdeckung'].to_list()[0]
     Meta_breitband = Meta[Meta['plz'] == plz]['Breitbandversorgung'].to_list()[0]
     Meta_verschuldung = Meta[Meta['plz'] == plz]['Verschuldung pro Einwohner in 1000'].to_list()[0]
-    Meta_verstädterung = Meta[Meta['plz'] == plz]['Grad der Verstädterung'].to_list()[0]
+    Meta_verstädterung = Meta[Meta['plz'] == plz]['Grad_der_Verstädterung'].to_list()[0]
     Meta_übernachtungen = Meta[Meta['plz'] == plz]['Anzahl Gästeübernachtungen in 2019'].to_list()[0]
 
     col1, col2 = st.beta_columns(2)
     with col1:
-        st.write('Ort deiner Postleitzahl:')
-        st.info(Meta_ort)
+        #st.write('Ort deiner Postleitzahl:')
+        #st.info(Meta_ort)
 
         st.write('Durchschnittseinkommen:')
         st.info(Meta_einkommen)
@@ -407,20 +413,21 @@ with Metadaten_plz:
 
 # Abstandshalter
 st.write('')
+st.image('Files/GUI/AbstandshalterAWI.jpg')
 
-# graphische Darstellungen
-graph = st.beta_expander('graphische Datenaufbereitung')
-with graph:
-    st.write('hier folgen Grafiken...')
+# weitere graphische Darstellungen
+if st.button('Graphische Datenanalyse'):
+    data = pd.read_csv('Files/GUI/imputed_data_original.csv')
+    st.map(data)
+    
 
-# Abstandshalter
-st.write('')
-
-# explorative Analyse des verwendeten Datensatzes
-eda = st.beta_expander('explorative Analyse des verwendeten Datensatzes')
-with eda:
+    # EDA
+if st.button('Explorative Datenanalyse'):
     load_pr = pickle.load(open('pr.pkl', 'rb'))
     st_profile_report(load_pr)
 
 if __name__ == "__main__":
-    print('Hallo')
+    print('Hello')
+    #filename = 'User_Interface_AWI.py'
+    #sys.argv = ["streamlit", "run", filename]
+    #sys.exit(stcli.main())
