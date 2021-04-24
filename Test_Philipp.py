@@ -1,9 +1,12 @@
 import pandas as pd
 import sqlite3
+
+from xgboost import plot_importance
+
 import machine_learning as ml
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+import pickle
 import sys
 from streamlit import cli as stcli
 db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
@@ -86,6 +89,11 @@ db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
 
 
 if __name__ == "__main__":
+ #model = pickle.load(open('XGB_Standardmodell_20210421-2205.pckl', 'rb'))
+ #plot_importance(model, max_num_features=10)
+ #fig = plt.gcf()
+ #fig.set_size_inches(17.5, 8 )
+ #plt.savefig('feature_importances.jpg')
  filename = 'Files/GUI/User_Interface_AWI.py'
  sys.argv = ["streamlit", "run", filename]
  sys.exit(stcli.main())

@@ -4,21 +4,15 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
-import sys
-from streamlit import cli as stcli
-#import main
 from streamlit.script_runner import RerunException, StopException
-from pandas_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
 
 
 # Änderungen an csv:
 # Datensatz von Lennart (Excel-Datei) kopieren, in Excel und Spalten zusammen (csv Format) dann folgende Änderungen:
 # Alle ohne Grundstücksfläche und Wohnfläche raus
 # Spalten raus: Längengrad, Breitengrad, PLZ
+from xgboost import plot_importance
 
 db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
 # allgemeine Streamlit Einstellungen (Tab Name; Icon; Seitenlayout; Menü)
@@ -83,7 +77,6 @@ def user_input_features():
                     'Etagenwohnung',
                     'Sonstige',
                     'Mehrfamilienhaus',
-                    'Erdgeschosswohnung',
                     'Erdgeschosswohnung',
                     'Dachgeschosswohnung',
                     'Zweifamilienhaus',
@@ -415,6 +408,15 @@ with Metadaten_plz:
 st.write('')
 st.image('Files/GUI/AbstandshalterAWI.jpg')
 
+
+feature_importances = st.beta_expander('Anzeige der wichtigsten Features')
+with feature_importances:
+    st.image('feature_importances.jpg')
+
+# Abstandshalter
+st.write('')
+st.image('Files/GUI/AbstandshalterAWI.jpg')
+
 # weitere graphische Darstellungen
 if st.button('Graphische Datenanalyse'):
     data = pd.read_csv('Files/GUI/imputed_data_original.csv')
@@ -428,6 +430,3 @@ if st.button('Explorative Datenanalyse'):
 
 if __name__ == "__main__":
     print('Hello')
-    #filename = 'User_Interface_AWI.py'
-    #sys.argv = ["streamlit", "run", filename]
-    #sys.exit(stcli.main())
