@@ -278,11 +278,10 @@ with Metadaten_plz:
     st.write('---')
 
     Meta = pd.read_sql_query('SELECT * FROM Meta_Data_upd WHERE plz=plz', con=db_connection, index_col="index")
-    Meta_ort = Meta[Meta['plz'] == plz]['Hilfe Ort'].to_list()[0]
     Meta_einwohner = Meta[Meta['plz'] == plz]['Einwohner je PLZ'].to_list()[0]
     Meta_einkommen = Meta[Meta['plz'] == plz]['Durschnittseinkommen'].to_list()[0]
     Meta_arbeit = Meta[Meta['plz'] == plz]['Arbeitslosenquote in Prozent'].to_list()[0]
-    Meta_sozio = Meta[Meta['plz'] == plz]['sozioökonmische Lage'].to_list()[0]
+    Meta_sozio = Meta[Meta['plz'] == plz]['sozioökonmische_Lage'].to_list()[0]
     Meta_miete = Meta[Meta['plz'] == plz]['Kaltmiete / qm'].to_list()[0]
     Meta_abschluss = Meta[Meta['plz'] == plz]['Anteil nicht erfolgreicher beruflicher Bildungsgänge'].to_list()[0]
     Meta_schulabbrecher = Meta[Meta['plz'] == plz]['Anteil Schulabbrecher'].to_list()[0]
@@ -295,7 +294,7 @@ with Metadaten_plz:
     Meta_grüngesamt = Meta[Meta['plz'] == plz]['Anteil Grünflächen an Gesamtfläche'].to_list()[0]
     Meta_erholunggesamt = Meta[Meta['plz'] == plz]['Anteil Erholungsflächen an Gesamtfläche'].to_list()[0]
     Meta_supermarkt = Meta[Meta['plz'] == plz]['Supermarkt im PLZ Gebiet'].to_list()[0]
-    Meta_zahnarzt = Meta[Meta['plz'] == plz]['Erreichbarkeit von Zahnärzten'].to_list()[0]
+    Meta_kindergarten = Meta[Meta['plz'] == plz]['Erreichbarkeit von Kindergarten'].to_list()[0]
     Meta_apotheken = Meta[Meta['plz'] == plz]['Erreichbarkeit von Apotheken'].to_list()[0]
     Meta_lebensmittel = Meta[Meta['plz'] == plz]['Erreichbarkeit von Lebensmittelgeschäften'].to_list()[0]
     Meta_durchschnittsalter = Meta[Meta['plz'] == plz]['Durschnittsalter'].to_list()[0]
@@ -307,9 +306,6 @@ with Metadaten_plz:
 
     col1, col2 = st.beta_columns(2)
     with col1:
-        st.write('Ort deiner Postleitzahl:')
-        st.info(Meta_ort)
-
         st.write('Durchschnittseinkommen:')
         st.info(Meta_einkommen)
 
@@ -390,13 +386,14 @@ with Metadaten_plz:
             st.info(Meta_erholunggesamt)
 
     if st.button('Erreichbarkeiten wesentlicher Einrichtungen'):
+        st.write('Die Erreichbarkeiten bezeichnen hier die mittlere Entfernung (arithmetisches Mittel). Sie wird in Wegezeit angegeben')
         col1, col2 = st.beta_columns(2)
         with col1:
             st.write('Supermarkt im PLZ Gebiet?:')
             st.info(Meta_supermarkt)
 
-            st.write('Erreichbarkeit von Zahnärzten:')
-            st.info(Meta_zahnarzt)
+            st.write('Erreichbarkeit von Kindergärten:')
+            st.info(Meta_kindergarten)
 
         with col2:
             st.write('Erreichbarkeit von Apotheken:')
