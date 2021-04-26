@@ -196,7 +196,7 @@ def user_input_features():
         features = features.assign(vermietet=(features['vermietet'] == 'JA').astype(int))
 
         #Metadaten aus Datenbank auslesen
-        Metadaten = pd.read_sql_query('SELECT * FROM Meta_Data_upd WHERE plz=plz', con=db_connection, index_col="index")
+        Metadaten = pd.read_sql_query('SELECT * FROM Meta_Data_upd2 WHERE plz=plz', con=db_connection, index_col="index")
         Metadaten = Metadaten.assign(
             supermarkt_im_plz_gebiet=(Metadaten['Supermarkt im PLZ Gebiet'] == 'JA').astype(int))
         Metadaten.drop(columns=['Supermarkt im PLZ Gebiet'], inplace=True)
@@ -258,7 +258,7 @@ elif modell == 'Random Forrest':
 # Definition des Outputs
 output = ''
 if st.button('Wertanalyse starten'):
-    output = int(load_modell.predict(input_df)[0])
+    output = int(load_modell.predict(input_df))
     output = str(output) + '€'
     st.success('Der Wert Ihrer Immobilie liegt bei {}'.format(output))
     
@@ -280,7 +280,7 @@ with Metadaten_plz:
     plz = st.number_input('', min_value=63739, max_value=97909, value=97070)
     st.write('---')
 
-    Meta = pd.read_sql_query('SELECT * FROM Meta_Data_upd WHERE plz=plz', con=db_connection, index_col="index")
+    Meta = pd.read_sql_query('SELECT * FROM Meta_Data_upd2 WHERE plz=plz', con=db_connection, index_col="index")
     #Meta_ort = Meta[Meta['plz'] == plz]['Hilfe Ort'].to_list()[0]
     Meta_einwohner = Meta[Meta['plz'] == plz]['Einwohner je PLZ'].to_list()[0]
     Meta_einkommen = Meta[Meta['plz'] == plz]['Durschnittseinkommen'].to_list()[0]
