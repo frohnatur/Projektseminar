@@ -242,19 +242,23 @@ def user_input_features():
 
 input_df = user_input_features()
 
-
-# Einlesen des Models aus der Pickle-Datei
-load_XGB_modell = pickle.load(open('XGB_Standardmodell_20210421-2205.pckl', 'rb'))
-
 # Abstandshalter
 st.write('')
 st.image('Files/GUI/AbstandshalterAWI.jpg')
 
+modell = st.selectbox('Wähle Vorhersagemodell', ('XG Boost', 'Stochastic Gradient Boosting', 'Random Forrest'))
+# Einlesen des Models aus der Pickle-Datei
+if modell == 'XG Boost':
+    load_modell = pickle.load(open('XGB_Standardmodell.pckl', 'rb'))
+elif modell == 'Stochastic Gradient Boosting':
+    load_modell = pickle.load(open('sgbr_Standardmodell.pckl', 'rb'))
+elif modell == 'Random Forrest':
+    load_modell = pickle.load(open('rf_Standardmodell.pckl', 'rb'))
 
 # Definition des Outputs
 output = ''
 if st.button('Wertanalyse starten'):
-    output = int(load_XGB_modell.predict(input_df)[0])
+    output = int(load_modell.predict(input_df)[0])
     output = str(output) + '€'
     st.success('Der Wert Ihrer Immobilie liegt bei {}'.format(output))
     
@@ -411,7 +415,12 @@ st.image('Files/GUI/AbstandshalterAWI.jpg')
 
 feature_importances = st.beta_expander('Anzeige der wichtigsten Features')
 with feature_importances:
-    st.image('feature_importances.jpg')
+    if modell == 'XG Boost':
+        st.image('Files/Feature_Importances_Grafiken/xgb_feature_importances.jpg')
+    elif modell == 'Stochastic Gradient Boosting':
+        st.image('Files/Feature_Importances_Grafiken/sgbr_feature_importances.jpg')
+    elif modell == 'Random Forrest':
+        st.image('Files/Feature_Importances_Grafiken/rf_feature_importances.jpg')
 
 # Abstandshalter
 st.write('')

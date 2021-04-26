@@ -15,15 +15,19 @@ from sklearn.model_selection import RandomizedSearchCV
 from category_encoders import TargetEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
+from xgboost import plot_importance
+
 import main
 
-def print_feature_importances(model, data):
+def print_feature_importances(model, data, save_string):
     importances = pd.Series(data=model.feature_importances_,
                             index=data.columns)
-    importances_sorted = importances.sort_values()
+    importances_sorted = importances.sort_values()[:10]
     importances_sorted.plot(kind='barh', color='lightgreen')
     plt.title('Features Importances')
-    plt.show()
+    fig = plt.gcf()
+    fig.set_size_inches(17.5, 8)
+    plt.savefig(save_string)
 # Entfernen der Ausreisser
 def outlier_treatment(datacolumn):
     sorted(datacolumn)
@@ -176,11 +180,14 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
 
     datestr = time.strftime("%Y%m%d-%H%M")
 
-    xg_reg_file = 'XGB_Standardmodell_' + datestr + '.pckl'
+    xg_reg_file = 'XGB_Standardmodell.pckl'
     with open(xg_reg_file, 'wb') as f:
         pickle.dump(xg_reg, f)
 
-    #print_feature_importances(model=xg_reg, data=imputed_data.drop(columns=["angebotspreis"]))
+    plot_importance(xg_reg, max_num_features=10)
+    fig = plt.gcf()
+    fig.set_size_inches(17.5, 8 )
+    plt.savefig('Files/Feature_Importances_Grafiken/xgb_feature_importances.jpg')
 
     # Grid Search parameter Tuning
     print("Grid Search Parameter Tuning:")
@@ -247,7 +254,11 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     print("RMSE: %f" % rmse)
     print()
 
-    print_feature_importances(model=sgbr, data=imputed_data.drop(columns=["angebotspreis"]))
+    sgbr_file = 'sgbr_Standardmodell.pckl'
+    with open(sgbr_file, 'wb') as f:
+        pickle.dump(sgbr, f)
+
+    print_feature_importances(model=sgbr, data=imputed_data.drop(columns=["angebotspreis"]), save_string='Files/Feature_Importances_Grafiken/sgbr_feature_importances.jpg')
 
     # Random Forrest
     print("Random Forrest:")
@@ -259,8 +270,8 @@ def ml_tests(x_train, x_test, y_train, y_test, imputed_data):
     print("RMSE: %f" % rmse)
     print()
 
-    rf_file = 'rf_Standardmodell_' + datestr + '.pckl'
+    rf_file = 'rf_Standardmodell.pckl'
     with open(rf_file, 'wb') as f:
         pickle.dump(rf, f)
 
-    print_feature_importances(model=rf, data=imputed_data.drop(columns=["angebotspreis"]))
+    print_feature_importances(model=rf, data=imputed_data.drop(columns=["angebotspreis"]), save_string='Files/Feature_Importances_Grafiken/rf_feature_importances.jpg')

@@ -89,11 +89,11 @@ db_connection = sqlite3.connect('Datenbank/ImmoDB.db')
 
 
 if __name__ == "__main__":
- #model = pickle.load(open('XGB_Standardmodell_20210421-2205.pckl', 'rb'))
+ #model = pickle.load(open('XGB_Standardmodell, 'rb'))
  #plot_importance(model, max_num_features=10)
  #fig = plt.gcf()
  #fig.set_size_inches(17.5, 8 )
- #plt.savefig('feature_importances.jpg')
+ #plt.savefig('Files/Feature_Importances_Grafiken/feature_importances.jpg')
  filename = 'Files/GUI/User_Interface_AWI.py'
  sys.argv = ["streamlit", "run", filename]
  sys.exit(stcli.main())
